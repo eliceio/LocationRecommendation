@@ -1,8 +1,29 @@
 import urllib.request
+import urllib.parse
 import json
 import sys
 import pandas as pd
 from bs4 import BeautifulSoup
+
+
+def get_url():
+    firstLoc = input("구를 입력하세요:")
+    secondLoc = []
+    locations = []
+    while True:
+        temp = input("동을 입력하세요:")
+        if temp == "EOF":
+            break
+        
+        secondLoc.append(temp)
+
+    query = [firstLoc+' '+item for item in secondLoc]
+
+    for q in query:
+        locations.append(urllib.parse.quote(q))
+
+    print("location url:", locations)
+    return locations
 
 
 def get_store(location):
@@ -18,7 +39,7 @@ def get_store(location):
         pageNum += 1
         url = host_url + "/search/" +  location + "?" + "keyword=" + location + "&" + "page=" + str(pageNum)
         r = urllib.request.urlopen(url).read()
-        soup = BeautifulSoup(r)
+        soup = BeautifulSoup(r, "lxml")
         is_empty = True
         for link in soup.find_all('a'):
             href = link.get('href')
@@ -30,9 +51,11 @@ def get_store(location):
         if (is_empty):
             break
 
+    print("The number of stores:", len(restaurant))
     return restaurant
 
-def makingDataset(restaurant, filename):
+
+def makingDataset(restaurant):
     '''
     input: filename (어은동.txt), restaurant (list of links)
     '''
@@ -103,7 +126,12 @@ def makingDataset(restaurant, filename):
                             'user_review': usr_review})
     
 
-    dataset.to_csv(filename+'.csv', sep='\t', index=False, encoding='utf-8')
+    
+    
+    print("============= Dataset completed ====================")
+    print("====================================================")
+    return dataset
+
 
         # reviewItem = soup.find_all('li', class_='default_review')
 
@@ -123,11 +151,20 @@ def makingDataset(restaurant, filename):
     # f.close()
 
 
-def main(location, filename):
-    restaurant = get_store(location)
-    makingDataset(restaurant, filename)
+def main(locations, filename):
+    frames = []
+    for location in locations:
+        restaurant = get_store(location)
+        dataset = makingDataset(restaurant)
+        frames.append(dataset)
+
+    data = pd.concat(frames)
+    return data
+        
+    
 
 if __name__ == "__main__":
-    location = sys.argv[1]
-    filename = sys.argv[2]
-    main(location, filename)
+    filename = sys.argv[1]
+    locations = get_url()
+    data = main(locations, filename)
+    data.to_csv(filename+'.csv', sep='\t', index=False, encoding='utf-8')
