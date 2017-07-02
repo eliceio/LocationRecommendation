@@ -111,7 +111,8 @@ def main():
             rev = rev.replace('\n', '')
             user_rev.append(rev)
             
-            print(cnt)
+            # 돌아가는지 모르겠을때 주석을 푸세요 숫자가 찍힙니다.
+            #print(cnt)
             cnt+=1
 
 
