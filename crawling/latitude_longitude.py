@@ -6,12 +6,12 @@ import json
 
 # csv 파일은 원하는걸루 바꾸세요.
 # dataset.csv 파일은 sep = ',' 으로 바꿔야합니다.
-df = pd.read_csv('seogu.csv', sep='\t', usecols=['store_location'])
+df = pd.read_csv('seogu.csv', sep='\t', usecols=['store_location', 'store_name'])
 store_loc = df.values
 
 for location in store_loc:
-	# 한글파라미터 전송시
-	location = parse.quote(str(location))
+	# 한글파라미터 전송시 인코딩바꿔줘야함
+	location = parse.quote(str(location[0] + location[1]))
 
 	# url
 	addr = urllib.request.urlopen("http://maps.googleapis.com/maps/api/geocode/json?sensor=false&language=ko&address=" + location).read()
