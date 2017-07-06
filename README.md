@@ -1,6 +1,7 @@
 # LocationRecommendation
 
 ELICE, 2017 Summer Team Project
+
 This project is supported by Daejeon Center for Creative Economy & Innovation
 
 * Junghyun Kim
