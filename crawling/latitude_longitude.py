@@ -6,6 +6,7 @@ import json
 
 # csv 파일은 원하는걸루 바꾸세요.
 # dataset.csv 파일은 sep = ',' 으로 바꿔야합니다.
+# 확인 결과 dataset_includeJoonggu.csv 는 sep='\t'로 해주셔야 합니다
 df = pd.read_csv('seogu.csv', sep='\t', usecols=['store_location', 'store_name'])
 store_loc = df.values
 
