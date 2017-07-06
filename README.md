@@ -20,7 +20,7 @@ Initial requirements are as follows
 
 * Python 3.6.0
 * Tensorflow 1.1.0
-* Pandas 0.20c.1
+* Pandas 0.20.1
 * BeautifulSoup 4.5.3
 * urllib 3.6
 
