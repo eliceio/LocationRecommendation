@@ -2,9 +2,17 @@ import pandas as pd
 import numpy as np
 
 # Algorithm 2
-def initialize():
-    theta = np.array()
-    phi = np.array()
+def initialize(nUser, nTopic, nLoc):
+
+    theta = np.random.rand(nUser, nTopic)
+    col_sum = theta.sum(axis=0)
+    theta = theta / col_sum
+
+	phi = np.array()
+	phi = np.random.rand(nTopic, nLoc)
+
+
+	return theta.tolist(), phi.tolist()
 
 # Algorithm 1
 def EM():
