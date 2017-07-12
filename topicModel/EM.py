@@ -1,6 +1,12 @@
 import pandas as pd
 import numpy as np
 
+
+'''
+이 코드는 단순히 git에 폴더를 올리기 위함이니 각 맡은 부분은 한 파일로 푸쉬해주시면 감사하겠습니다 :)
+(나중에 import 해서 합칠 수 있게 해주시면 감사하겠습니다!
+'''
+
 # Algorithm 2
 def initialize():
     theta = np.array()
