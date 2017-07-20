@@ -3,11 +3,11 @@ import pandas as pd
 from scipy.optimize import minimize
 from scipy.spatial.distance import pdist, squareform
 import tensorflow as tf
-import sys
+import pdb
 
 
 def load_data():
-    df = pd.read_csv('data/대전시.csv', sep='\t', index_col=False)
+    df = pd.read_csv('deajeon.csv', sep='\t', index_col=False)
     return df
 
 def initialize(N, Z, I):
@@ -58,7 +58,7 @@ def get_P_Xum(location, df_dist, x_um, psi):
     loc_id = np.array([x[0] for x in location])
     phi = psi[1]; phi = np.exp(phi)
     phi = pd.DataFrame(phi, columns=loc_id)
-    pXum = []; I = len(loc_id); Z = phi.shape[0]
+    pXum = {}; I = len(loc_id); Z = phi.shape[0]
     for key in x_um.keys():
         temp = np.full([Z, I], np.nan)
         df_temp = pd.DataFrame(temp, columns=loc_id)
@@ -69,7 +69,7 @@ def get_P_Xum(location, df_dist, x_um, psi):
         prob = usr_phi * userdistSum
 
         df_temp[usr_vsted_loc] = prob
-        pXum.append(df_temp)
+        pXum[key] = df_temp
         
     return pXum
 
@@ -79,7 +79,7 @@ def E(psi, pXum, df_user, x_um):
     theta = psi[0]; phi = psi[1]; topicProb = {}
     memId = df_user['Member ID'].unique()
     
-    theta = pd.DataFrame(theta, index=mem_id)
+    theta = pd.DataFrame(theta, index=memId)
     for key in x_um.keys():
         theta_usr = theta.loc[key].as_matrix()
         pXum_usr = pXum[key].as_matrix()
@@ -91,6 +91,76 @@ def E(psi, pXum, df_user, x_um):
             
     return topicProb
     
+
+def get_ind(x_um):
+    indices = []
+    for key in x_um.keys():
+        value = x_um[key]
+        if len(value) == 1:
+            indices.append([key, value[0]])
+        else:
+            for loc in value:
+                indices.append([key, loc])
+
+    return indices
+
+
+def theta_optimize(pXum):
+    theta_hat_numer = pXum.sum(axis=1)
+    theta_hat_denom = theta_hat_numer.sum()
+    theta_hat = theta_hat_numer / theta_hat_denom
+
+    return theta_hat
+
+def fun1(phi, theta, P_hat, dist):
+
+    feed_dict = {P_hat : P_hat,
+                 Theta : theta,
+                 Phi : phi,
+                 dist : dist}
+    
+    Q_ = sess.run(Q, feed_dict)
+
+    Phi_grad_ = sess.run(Phi_grad, feed_dict)
+
+    return -(Q_), Phi_grad_
+
+def M(x_um,P_hat, Psi, dist, pXum):
+    theta = []
+    for key in P_hat.keys():
+        temp = theta_optimize(P_hat[key])
+        theta.append(temp)
+
+    theta = np.array(theta)
+    phi = Psi[1]
+    P = pXum
+
+    N = theta.shape[0]; Z = theta.shape[1]; I = phi.shape[1]
+
+    #
+    indices = get_ind(x_um)
+    Indices = tf.SparseTensor(indices = indices, values = tf.ones(len(indices), dtype = tf.float64), dense_shape = [N, I])
+
+    # placeholder
+    P_hat = tf.placeholder(tf.float64, shape = [Z, N, I])
+    Theta = tf.placeholder(tf.float64, shape = [N, Z])
+    Phi = tf.placeholder(tf.float64, shape = [Z, I])
+    dist = tf.placeholder(tf.float64, shape = [I, I])
+
+    log_Theta = tf.expand_dims(tf.transpose(tf.log(Theta)), axis = 2)
+    
+    loglike = P_hat * log_Theta * P
+
+    Q = tf.reduce_sum(tf.sparse_tensor_dense_matmul(Indices, tf.transpose(tf.reshape(loglike, [-1, I]))))
+
+    Phi_grad = tf.gradients(Q, Phi)
+
+    fun = lambda phi : fun1(phi, theta, P_hat, dist)
+    
+    res =  minimize(fun, phi, jac = True)
+
+    return res.x
+
 
 def main():
     df = load_data()
@@ -106,6 +176,18 @@ def main():
     df_dist = getDist(beta, location)
 
     x_um = get_Xum(df)
+    
+    Psi = initialize(N, Z, I)
+    Theta = Psi[0]; Phi = Psi[1]
+
+
+    pXum = get_P_Xum(location, df_dist, x_um, Psi)    
+    #pdb.set_trace()
+    
+    P_hat = E(Psi, pXum, df_user, x_um)
+
+    # P :  pXum???
+    psi = M(x_um, P_hat, Psi, df_dist, pXum)
 
 if __name__=="__main__":
     main()
