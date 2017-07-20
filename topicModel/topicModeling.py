@@ -75,6 +75,7 @@ def get_P_Xum(location, df_dist, x_um, psi):
 
 
 def E(psi, pXum, df_user, x_um):
+    np.seterr(divide='ignore', invalid='ignore')
     theta = psi[0]; phi = psi[1]; topicProb = {}
     memId = df_user['Member ID'].unique()
     
