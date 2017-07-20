@@ -53,29 +53,53 @@ def get_Xum(df):
 
     return x_um
 
-def get_P_Xum(location, df_dist, x_um):
+def get_P_Xum(location, df_dist, x_um, psi):
     
     loc_id = np.array([x[0] for x in location])
-    phi = np.exp(phi)
+    phi = psi[1]; phi = np.exp(phi)
     phi = pd.DataFrame(phi, columns=loc_id)
-    Px_um = []
+    pXum = []; I = len(loc_id); Z = phi.shape[0]
     for key in x_um.keys():
-        userDist = df_dist.loc[key, key]
-        userDistSum = userDist.sum(axis=1)
+        temp = np.full([Z, I], np.nan)
+        df_temp = pd.DataFrame(temp, columns=loc_id)
+        usr_vsted_loc = x_um[key]
+        userdist = df_dist.loc[usr_vsted_loc, usr_vsted_loc]
+        userdistSum = userdist.sum(axis=1)
+        usr_phi = phi.loc[:, usr_vsted_loc]
+        prob = usr_phi * userdistSum
 
-        user_phi = phi.loc[:, key]
-        Px_um.append(user_phi * userDistSum)
+        df_temp[usr_vsted_loc] = prob
+        pXum.append(df_temp)
+        
+    return pXum
 
-    return Px_um
+
+def E(psi, pXum, df_user, x_um):
+    theta = psi[0]; phi = psi[1]; topicProb = {}
+    memId = df_user['Member ID'].unique()
+    
+    theta = pd.DataFrame(theta, index=mem_id)
+    for key in x_um.keys():
+        theta_usr = theta.loc[key].as_matrix()
+        pXum_usr = pXum[key].as_matrix()
+        theta_usr = theta_usr.reshape(1, -1)
+        temp = theta_usr.T * pXum_usr
+        tempSum = temp.sum(axis=0)
+        prob = temp / tempSum
+        topicProb[key] = prob
+            
+    return topicProb
     
 
 def main():
     df = load_data()
-    beta = int(input("Enter the beta value:"))
+    beta = float(input("Enter the beta value:"))
+    Z = int(input("Enter the number of topic:"))
     N = len(df['Member ID'].unique())
     I = len(df['Restaurant ID'].unique())
 
     df_loc = df[['Restaurant ID', 'Restaurant Latitude', 'Restaurant Longitude']]
+    df_user = df[['Member ID', 'Restaurant ID']]
     location = sorted(list(set([tuple(x) for x in df_loc.to_records(index=False)])))
 
     df_dist = getDist(beta, location)
@@ -83,5 +107,4 @@ def main():
     x_um = get_Xum(df)
 
 if __name__=="__main__":
-    Z = int(sys.argv[1])
     main()
