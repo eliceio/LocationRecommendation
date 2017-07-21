@@ -121,16 +121,12 @@ def fun1(Q_, Phi_grad_):
     return -(Q_), Phi_grad_
     
     
-def M(x_um, p_hat, Psi, pXum):
-    theta = []
-    for key in p_hat.keys():
-        temp = theta_optimize(p_hat[key])
-        theta.append(temp)
+def M(x_um, p_hat, Psi, pXum, theta , N, Z ,I):
 
     theta = np.array(theta)
     phi = Psi[1]
 
-    N = theta.shape[0]; Z = theta.shape[1]; I = phi.shape[1]
+    #N = theta.shape[0]; Z = theta.shape[1]; I = phi.shape[1]
 
     indices = get_ind(x_um)
     Indices = tf.SparseTensor(indices = indices, values = tf.ones(len(indices), dtype = tf.float64), dense_shape = [N, I])
@@ -142,8 +138,10 @@ def M(x_um, p_hat, Psi, pXum):
     P = tf.placeholder(tf.float64, shape = [Z, N, I])
 
 
-
     log_Theta = tf.expand_dims(tf.transpose(tf.log(Theta)), axis = 2)
+    #print("log Theta shape:", log_Theta.get_shape())
+    #print("P_hat shape:", P_hat.get_shape())
+    #print("P shape:", P.get_shape())
     
     loglike = P_hat * log_Theta * P
 
@@ -158,15 +156,24 @@ def M(x_um, p_hat, Psi, pXum):
     
     
     sess = tf.Session()
+    
     Q_ = sess.run(Q, feed_dict)
+    
+#     print(sess.run(P_hat,feed_dict))
+#     print("-------------------------")
+#     print(sess.run(Theta, feed_dict))
+#     print("-------------------------")
+#     print(sess.run(Phi))
+#     print("-------------------------")
+#     print(sess.run(P))
 
     Phi_grad_ = sess.run(Phi_grad, feed_dict)
     
     fun = lambda phi: fun1(Q_, Phi_grad_)
     
     res =  minimize(fun, phi, jac = True)
-
-    return res.x, theta
+    
+    return [theta, res.x]
 
 
 
@@ -192,14 +199,29 @@ def main():
     pXum = get_P_Xum(location, df_dist, x_um, Psi)    
     #pdb.set_trace()
     
-    P_hat = E(Psi, pXum, df_user, x_um)
     
+    P_hat = E(Psi, pXum, df_user, x_um)
+
+    p_hat = []
+    PXum = []
+    for key in P_hat.keys():
+        p_hat.append(P_hat[key].as_matrix())
+        PXum.append(pXum[key].as_matrix())
+    
+    p_hat = np.array(p_hat)
+    p_hat1 = np.swapaxes(p_hat, 0, 1)
+    PXum = np.array(PXum)
+    PXum1 = np.swapaxes(PXum, 0, 1)
+    
+    theta = []
+    for key in P_hat.keys():
+        temp = theta_optimize(P_hat[key])
+        theta.append(temp)
 
     # P :  pXum
-    psi = M(x_um, P_hat, Psi, pXum)
+    psi = M(x_um, p_hat1, Psi, PXum1, theta, N, Z, I)
 
 
 
 if __name__=="__main__":
     main()
-
