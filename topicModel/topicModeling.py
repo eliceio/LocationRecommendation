@@ -17,8 +17,8 @@ def initialize(N, Z, I):
     phi shape: Z * I
     '''
     theta = np.random.rand(N, Z)
-    col_sum = theta.sum(axis=0)
-    theta = theta / col_sum
+    row_sum = theta.sum(axis=1).reshape(-1, 1)
+    theta = theta / row_sum
     phi = np.random.rand(Z, I)
     
     return [theta, phi]
@@ -181,7 +181,9 @@ def main():
     Psi = initialize(N, Z, I)
     Theta = Psi[0]; Phi = Psi[1]
 
-
+    print("=====================================================")
+    print("P(Xum|z, R_u, Phi)")
+    print("=====================================================")
     pXum = get_P_Xum(location, df_dist, x_um, Psi)    
     #pdb.set_trace()
 
