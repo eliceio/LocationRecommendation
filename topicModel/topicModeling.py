@@ -6,8 +6,8 @@ import tensorflow as tf
 import pdb
 
 
-def load_data():
-    df = pd.read_csv('deajeon.csv', sep='\t', index_col=False)
+def load_data(filename):
+    df = pd.read_csv(filename, delimiter='\t', index_col=False)
     return df
 
 def initialize(N, Z, I):
@@ -37,7 +37,7 @@ def getDist(beta, location):
     dist = squareform(pdist(np.exp(-0.5*beta*L)))
     loc_id = np.array([x[0] for x in location])
     distance = pd.DataFrame(dist, columns=loc_id, index=loc_id)
-    
+    distance[distance == 0] = 1
     return distance
 
 def get_Xum(df):
@@ -69,7 +69,7 @@ def get_P_Xum(location, df_dist, x_um, psi):
         prob = usr_phi * userdistSum
 
         df_temp[usr_vsted_loc] = prob
-        pXum[key] = df_temp
+        pXum[key] = df_temp.fillna(0)
         
     return pXum
 
@@ -159,13 +159,14 @@ def M(x_um,P_hat, Psi, dist, pXum):
     
     res =  minimize(fun, phi, jac = True)
 
-    return res.x
+    return [theta, res.x]
 
 
 def main():
-    df = load_data()
-    beta = float(input("Enter the beta value:"))
-    Z = int(input("Enter the number of topic:"))
+    filename = "../data/daejeon.csv"
+    df = load_data(filename)
+    beta = 1
+    Z = 5
     N = len(df['Member ID'].unique())
     I = len(df['Restaurant ID'].unique())
 
@@ -183,11 +184,22 @@ def main():
 
     pXum = get_P_Xum(location, df_dist, x_um, Psi)    
     #pdb.set_trace()
+
+    print("=====================================================")
+    print("In the E step")
+    print("=====================================================")
     
     P_hat = E(Psi, pXum, df_user, x_um)
-
+    print("=====================================================")
+    print('In the M step')
+    print("=====================================================")
     # P :  pXum???
-    psi = M(x_um, P_hat, Psi, df_dist, pXum)
+    res = M(x_um, P_hat, Psi, df_dist, pXum)
+    phi = res[1]
+
+#    print(phi[59])
+
+    return res
 
 if __name__=="__main__":
     main()
