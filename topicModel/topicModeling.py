@@ -67,6 +67,7 @@ def get_P_Xum(location, df_dist, x_um, psi):
         userdistSum = userdist.sum(axis=1)
         usr_phi = phi.loc[:, usr_vsted_loc]
         prob = usr_phi * userdistSum
+        prob = prob / prob.sum()
 
         df_temp[usr_vsted_loc] = prob
         pXum[key] = df_temp.fillna(0)
@@ -77,9 +78,12 @@ def get_P_Xum(location, df_dist, x_um, psi):
 def E(psi, pXum, df_user, x_um):
     np.seterr(divide='ignore', invalid='ignore')
     theta = psi[0]; phi = psi[1]; topicProb = {}
-    memId = df_user['Member ID'].unique()
+    memId = sorted(df_user['Member ID'].unique())
+    locId = sorted(df_user['Restaurant ID'].unique())
     
     theta = pd.DataFrame(theta, index=memId)
+    theta = theta.sort_index()
+             
     for key in x_um.keys():
         theta_usr = theta.loc[key].as_matrix()
         pXum_usr = pXum[key].as_matrix()
@@ -87,8 +91,8 @@ def E(psi, pXum, df_user, x_um):
         temp = theta_usr.T * pXum_usr
         tempSum = temp.sum(axis=0)
         prob = temp / tempSum
-        topicProb[key] = prob
-            
+        topicProb[key]= pd.DataFrame(prob, columns=locId).fillna(0)
+        
     return topicProb
     
 
