@@ -6,7 +6,7 @@ from scipy.spatial.distance import squareform # distance.euclidean(a,b)
 import tensorflow as tf
 
 def load_data():
-	df = pd.read_csv('daejeon.csv', delimiter='\t', index_col=False)
+        df = pd.read_csv('../data/daejeon.csv', delimiter='\t', index_col=False)
 	return df
 
 def initialize(N, Z, I):
@@ -219,6 +219,7 @@ def main():
 		if (np.all(pre_theta - theta) < 1e-6) and (np.all(pre_phi - phi) < 1e-6):
 			break
 
+        return Psi
 
 	# # test ::  beta value: 1 , topic: 5 
 	# t_theta = Psi[0]; t_phi = Psi[1].reshape(5, 852)
