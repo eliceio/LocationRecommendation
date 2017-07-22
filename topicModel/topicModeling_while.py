@@ -6,7 +6,7 @@ from scipy.spatial.distance import squareform # distance.euclidean(a,b)
 import tensorflow as tf
 
 def load_data():
-    df = pd.read_csv('daejeon.csv', delimiter='\t', index_col=False)
+    df = pd.read_csv('../data/daejeon.csv', delimiter='\t', index_col=False)
     return df
 
 def initialize(N, Z, I):
@@ -196,35 +196,56 @@ def main():
     '''
     Algorithm 2 Parameter initialization
     '''
+    print("============================================================================")
+    print("Start Parameter Estimation Step")
+    
     Psi = initialize(N, Z, I)
     
     pXum = get_P_Xum(location, df_dist, x_um, Psi)    
     distance = df_dist.as_matrix()
-
+    idx = 1
+    print("Start while loop")
     while True:
-
         pre_theta = Psi[0]
         pre_phi = Psi[1]
-        
-        P_hat = E(Psi, pXum, df_user, x_um)
 
+        print("------------------------------- %d th step ----------------------------------" % idx)
+        print("Get in to the E-step")
+        P_hat = E(Psi, pXum, df_user, x_um)
+        
+        print("Get in to the M-step")
         psi = M(x_um, P_hat, Psi, distance, N, Z, I, locId)
         
         theta = psi[0]
         phi = psi[1].reshape(Z, I)
-        
+
+        print("Update Psi, %d th trial" % idx)
         # update Psi
         Psi = [theta, phi]
-
+        
+        print("-----------------------------------------------------------------------------")
+        print("Theta")
+        print(theta)
+        print("-----------------------------------------------------------------------------")
+        print("Phi")
+        print(phi)
+        
+        idx += 1
         if (np.all(pre_theta - theta) < 1e-6) and (np.all(pre_phi - phi) < 1e-6):
             break
 
 
-    return Psi
-    # # test ::  beta value: 1 , topic: 5 
-    # t_theta = Psi[0]; t_phi = Psi[1].reshape(5, 852)
-    # print(t_theta.shape) #(1153, 5)
-    # print(t_phi.shape) #(5, 852)
+
+    # test ::  beta value: 1 , topic: 5 
+    t_theta = Psi[0]; t_phi = Psi[1].reshape(Z, I)
+    print("================================================================")
+    print("Parameter estimation is over")
+    print("----------------------------------------------------------------")
+    print("Theta shape:", t_theta.shape) #(1153, 5)
+    print("Phi shape:", t_phi.shape) #(5, 852)
+    print("================================================================")
+    print("Theta:", t_theta)
+    print("Phi:", t_phi)
 
 if __name__ == '__main__':
     main()
