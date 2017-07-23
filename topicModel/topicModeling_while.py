@@ -8,10 +8,9 @@ from collections import Counter
 import json
 import urllib.request
 from urllib import parse
-import json
 
 '''
-Author: Sumin Lim (KAIST), Hyunji Lee (Jeonbook Univ.)
+Author: Sumin Lim (KAIST), Hyunji Lee (Jeonbuk Univ.)
 July 23th. 2017
 
 Paper: Kurashima T. et al., Geo Topic Model: Joint Modeling of User's Acitivity Area and Interests for Location Recommendation
@@ -301,8 +300,9 @@ def parameter_estimation():
     visited_loc_user = get_visited_loc_user(df)
     
     # cnt_visited_loc_usr: 유저당 가게 중복 방문 수 
-    cnt_visited_loc_usr = cnt_visited_location(visited_loc_user)
-    print(cnt_visited_loc_usr)
+    # 사용하려면 밑에 주석을 푸세요
+    #cnt_visited_loc_usr = cnt_visited_location(visited_loc_user)
+    #print(cnt_visited_loc_usr)
     
     
     # Algorithm 2 : Parameter initialization
@@ -315,9 +315,11 @@ def parameter_estimation():
     prob_loc_topic = get_prob_loc_topic(location, df_dist, visited_loc_user, psi)    
    
     # counting while loop
-    cnt_loop = 0
+    cnt_loop = 1
 
     while True:
+        print("count loop: ", cnt_loop)
+        cnt_loop += 1
 
         pre_theta = psi[0]
         pre_phi = psi[1]
@@ -333,12 +335,12 @@ def parameter_estimation():
         phi = new_psi[1].reshape(Z, I)
         psi = [theta, phi]
 
-        if (np.all(pre_theta - theta) < 1e-6) and (np.all(pre_phi - phi) < 1e-6):
+
+        if np.all((pre_theta - theta) < 1e-10) and np.all((pre_phi - phi) < 1e-10):
             break
         
-        print("count loop: "cnt_loop)
-        cnt_loop =+ 1
 
+    print("Finish parameter_estimation")
     return beta, psi
 
 
@@ -348,12 +350,12 @@ def get_location(current_location):
     For example, the current_location is "대전시 서구 복수동 475"
     This function returns the list containing latitude and longitude of that address
     '''
-    current_address = parse.quote(current_location)
-    address = urllib.request.urlopen("http://maps.googleapis.com/maps/api/geocode/json?sensor=false&language=ko&address=" + location).read()
+    current_address = parse.quote(str(current_location))
+    address = urllib.request.urlopen("http://maps.googleapis.com/maps/api/geocode/json?sensor=false&language=ko&address=" + current_address).read().decode('utf-8')
 
-    json = json.loads(address)
-    latitude = json["results"][0]["geometry"]["location"]["lat"]
-    longitude = json["results"][0]["geometry"]["location"]["lng"]
+    data = json.loads(address)
+    latitude = data["results"][0]["geometry"]["location"]["lat"]
+    longitude = data["results"][0]["geometry"]["location"]["lng"]
     return [latitude, longitude]
 
 
@@ -400,10 +402,10 @@ def find_recommendation(recommend_prob, locId, df):
 
 def main():
     df = load_data()
-    df_location = df[['Restaurant ID', 'Restaurant Latitude', 'Restaurant Longitude']]
+    df_loc = df[['Restaurant ID', 'Restaurant Latitude', 'Restaurant Longitude']]
     df_user = df[['Member ID', 'Restaurant ID']]
     location = sorted(list(set([tuple(x) for x in df_loc.to_records(index=False)])))
-    locId = sorted(df_user['Restaurant ID'].unique())
+    loc_Id = sorted(df_user['Restaurant ID'].unique())
     L = np.array([[x[1], x[2]] for x in location])
     
     beta, psi = parameter_estimation()
@@ -413,7 +415,7 @@ def main():
     recommend_prob = test(L, current_coordinate, psi, beta)
     print(recommend_prob)
 
-    recommendation = find_recommendation(recommend_prob, locId, df)
+    recommendation = find_recommendation(recommend_prob, loc_Id, df)
     print(recommendation)
     
     
