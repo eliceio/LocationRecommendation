@@ -4,9 +4,11 @@ from scipy.optimize import minimize
 from scipy.spatial.distance import pdist
 from scipy.spatial.distance import squareform # distance.euclidean(a,b)
 import tensorflow as tf
+from collections import Counter
+
 
 def load_data():
-    df = pd.read_csv('../data/daejeon.csv', delimiter='\t', index_col=False)
+    df = pd.read_csv('daejeon.csv', delimiter='\t', index_col=False)
     return df
 
 def initialize(N, Z, I):
@@ -42,7 +44,8 @@ def getDist(beta, location):
 def get_visited_loc_user(df):
     df_temp = df.sort_values('Member ID')
     df_user = df_temp[["Member ID", "Restaurant ID"]]
-
+    
+    # visited_loc_user : x_um
     visited_loc_user = {}
     for index, row in df_user.iterrows():
         if row["Member ID"] not in visited_loc_user:
@@ -91,7 +94,7 @@ def E(psi, prob_loc_topic, df_user, visited_loc_user):
         topic_prob[key] = pd.DataFrame(prob, columns=loc_Id).fillna(0)
     
     return topic_prob
-
+    
 def get_ind(visited_loc_user, loc_Id):
     indices = []
     mem_Idx = -1
@@ -113,7 +116,8 @@ def theta_optimize(prob_loc_topic):
 
 def M(visited_loc_user, topic_posterior_prob, Psi, distance, N, Z ,I, loc_Id):
     '''
-    topic_posterior_prob: topic_posteior_probability
+    topic_posterior_prob: topic_posteior_probability 
+    topic_posterior_prob: before P_hat
     Psi: [theta, phi]
 
     '''
@@ -155,7 +159,7 @@ def M(visited_loc_user, topic_posterior_prob, Psi, distance, N, Z ,I, loc_Id):
 
     log_Theta = tf.expand_dims(tf.transpose(tf.log(Theta)), axis = 2)
 
-    loglike = topic_post_prob * log_Theta * P
+    loglike = Topic_post_prob * log_Theta * P
 
     Q = -tf.reduce_sum(tf.sparse_tensor_dense_matmul(Indices, tf.transpose(tf.reshape(loglike, [-1, I]))))
     Phi_grad = tf.negative(tf.gradients(Q, Phi))
@@ -181,6 +185,16 @@ def M(visited_loc_user, topic_posterior_prob, Psi, distance, N, Z ,I, loc_Id):
     
     return [theta, res.x]
 
+def cnt_visited_location(x_um):
+    cnt_visited_loc_usr={}
+    for key in x_um:
+        usr = Counter(x_um[key])
+        dict_usr = dict(usr)
+        cnt_visited_loc = dict(Counter(dict_usr.values()))
+        cnt_visited_loc_usr[key] = cnt_visited_loc
+
+    return cnt_visited_loc_usr
+
 def main():
     df = load_data()
     beta = float(input("Enter the beta value:"))
@@ -194,7 +208,7 @@ def main():
 
 
     loc_Id = sorted(df_user['Restaurant ID'].unique())
-    #mem_Id = sorted(df_user['Member ID'].unique())
+    mem_Id = sorted(df_user['Member ID'].unique())
     df_dist = getDist(beta, location)
     distance = df_dist.as_matrix()
 
@@ -202,21 +216,27 @@ def main():
     # visited_loc_user : before x_um
     visited_loc_user = get_visited_loc_user(df)
     
+    # cnt_visited_loc_usr: 유저당 가게 중복 방문 수 
+    cnt_visited_loc_usr = cnt_visited_location(visited_loc_user)
+    print(cnt_visited_loc_usr)
+    
     
     # Algorithm 2 : Parameter initialization
     # psi : [theta, phi]
     # theta: probability that topic Z is chosen by user N
     # phi: probability that location I is chosen for topic Z
-    
     psi = initialize(N, Z, I)
-
+    
     # prob_loc_topic : the probability that each location is chosen from topic Z (before name: pXum)
     prob_loc_topic = get_prob_loc_topic(location, df_dist, visited_loc_user, psi)    
    
+    # counting while loop
+    cnt_loop = 0
 
     while True:
-        pre_theta = Psi[0]
-        pre_phi = Psi[1]
+
+        pre_theta = psi[0]
+        pre_phi = psi[1]
         
         # topic_post_prob : topic posterior probability
         # topic_post_prob : before P_hat
@@ -224,14 +244,16 @@ def main():
 
         new_psi = M(visited_loc_user, topic_post_prob, psi, distance, N, Z, I, loc_Id)
         
+        # update Psi
         theta = new_psi[0]
         phi = new_psi[1].reshape(Z, I)
-        
-        # update Psi
         psi = [theta, phi]
 
         if (np.all(pre_theta - theta) < 1e-6) and (np.all(pre_phi - phi) < 1e-6):
             break
+        
+        print("count loop: "cnt_loop)
+        cnt_loop =+ 1
 
     return psi
 
