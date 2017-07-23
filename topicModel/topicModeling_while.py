@@ -5,9 +5,25 @@ from scipy.spatial.distance import pdist
 from scipy.spatial.distance import squareform # distance.euclidean(a,b)
 import tensorflow as tf
 from collections import Counter
+import json
+import urllib.request
+from urllib import parse
+import json
 
+'''
+Author: Sumin Lim (KAIST), Hyunji Lee (Jeonbook Univ.)
+July 23th. 2017
+
+Paper: Kurashima T. et al., Geo Topic Model: Joint Modeling of User's Acitivity Area and Interests for Location Recommendation
+
+This program implements location recommendation using geotag data
+'''
 
 def load_data():
+    '''
+    Read data file
+    File format: .csv, separated by tab
+    '''
     df = pd.read_csv('daejeon.csv', delimiter='\t', index_col=False)
     return df
 
@@ -26,12 +42,14 @@ def initialize(N, Z, I):
 
 def getDist(beta, location):
     '''
-    input
+    Calculate the distance between locations 
+
+    Input
     beta: scalar
     location: should be sorted list
     
-    output
-    distance: dataframe, shape of I * I
+    Output
+    distance: dataframe, shape of I * I, row and column index = restaurant ID
     '''
     I = len(location)
     L = np.array([[x[1], x[2]] for x in location])
@@ -42,6 +60,14 @@ def getDist(beta, location):
     return distance
 
 def get_visited_loc_user(df):
+    '''
+    Get the visited locations per user
+
+    Input: DataFrame
+
+    Output: Dictionary, key = Member ID, value = [restaurant ID, ... , restaurant ID]
+    The length of each value differs from each user (len(value) = Mu)
+    '''
     df_temp = df.sort_values('Member ID')
     df_user = df_temp[["Member ID", "Restaurant ID"]]
     
@@ -56,7 +82,16 @@ def get_visited_loc_user(df):
     return visited_loc_user
 
 def get_prob_loc_topic(location, df_dist, visited_loc_user, psi):
+    '''
+    P(i|z, R_u, Phi), equation (2) in the paper
+    location i is chosen from topic z after consideration of the user's geotags R_u
 
+    Input:
+    location (dataFrame), df_dist (dataFrame), visited_loc_user (dictionary), psi ([theta, phi])
+
+    Output:
+    Dictionary with key = Member ID, value = Z * I dataFrame
+    '''
     loc_Id = np.array([x[0] for x in location])
     phi = psi[1]; phi = np.exp(phi)
     phi = pd.DataFrame(phi, columns=loc_Id)
@@ -78,6 +113,19 @@ def get_prob_loc_topic(location, df_dist, visited_loc_user, psi):
     return prob_loc_topic
 
 def E(psi, prob_loc_topic, df_user, visited_loc_user):
+    '''
+    Expectation step for parameter estimation using EM algorithm
+    In this step, the Bayse rule is used for computing the topic posterior probability
+    Topic posterior probability refers to the probability of the mth location of user u gien the current estimate. 
+
+    Input: 
+    1. psi: [theta, phi]
+    2. prob_loc_topic: dictionary, key = Member ID, value = Z*I dataFrame
+    3. visited_loc_user: dictionary, key = Member ID, value = [restaurant ID, ... , restaurant ID]
+
+    Output:
+    Topic posterior probability: dictionary, key = Member ID, value = Z*I dataFrame
+    '''
     np.seterr(divide='ignore', invalid='ignore')
     theta = psi[0]; phi = psi[1]; topic_prob = {}
     mem_Id = sorted(df_user['Member ID'].unique())
@@ -96,6 +144,18 @@ def E(psi, prob_loc_topic, df_user, visited_loc_user):
     return topic_prob
     
 def get_ind(visited_loc_user, loc_Id):
+    '''
+    This function returns the indices for making tensor in M-step
+    
+    Input: 
+    1. visited_loc_user: dictionary, key = Member ID, value = [restaurant ID, ... , restaurant ID]
+    2. loc_Id: list, contains the unique restaurant IDs in the dataset
+
+    Output:
+    indices: nested list, which contains the user index and restaurant index. 
+    User index refers to the index when sorting the dataset with Member ID. 
+    For example, if member ID = 59, the index of user 59 is 0
+    '''
     indices = []
     mem_Idx = -1
     for key in visited_loc_user.keys():
@@ -109,6 +169,15 @@ def get_ind(visited_loc_user, loc_Id):
 
 
 def theta_optimize(prob_loc_topic):
+    '''
+    This function returns the optimized theta in the M-step
+    
+    Input:
+    The value of prob_loc_topic: Z * I dataFrame
+
+    Output:
+    theta_hat: optimized theta, N * Z
+    '''
     theta_hat_numer = prob_loc_topic.sum(axis=1)
     theta_hat_denom = theta_hat_numer.sum()
     theta_hat = theta_hat_numer / theta_hat_denom
@@ -116,10 +185,22 @@ def theta_optimize(prob_loc_topic):
 
 def M(visited_loc_user, topic_posterior_prob, Psi, distance, N, Z ,I, loc_Id):
     '''
-    topic_posterior_prob: topic_posteior_probability 
-    topic_posterior_prob: before P_hat
-    Psi: [theta, phi]
+    This function is used for parameter estimation using EM algorithm
+    Estimate theta, and maximize the conditional expectation of the complete-data log likelihood, equation (4) in the paper
 
+    
+    Input:
+    1. visited_loc_user: the return value from the function get_visited_loc_user 
+    2. topic_posterior_prob: the return value from the function E
+    3. Psi: [theta, phi]
+    4. distance: dataFrame
+    5. N: the number of users
+    6. Z: the number of topics
+    7. I: the number of locations
+    8. loc_id: list containing the restaurant ID
+
+    Output:
+    psi: [theta, phi]
     '''
     theta = []
     for key in topic_posterior_prob.keys():
@@ -186,6 +267,9 @@ def M(visited_loc_user, topic_posterior_prob, Psi, distance, N, Z ,I, loc_Id):
     return [theta, res.x]
 
 def cnt_visited_location(x_um):
+    '''
+    This function returns the dictionary with key = member ID, value: the number of re-visiting the location
+    '''
     cnt_visited_loc_usr={}
     for key in x_um:
         usr = Counter(x_um[key])
@@ -195,7 +279,7 @@ def cnt_visited_location(x_um):
 
     return cnt_visited_loc_usr
 
-def main():
+def parameter_estimation():
     df = load_data()
     beta = float(input("Enter the beta value:"))
     Z = int(input("Enter the number of topic:"))
@@ -255,8 +339,83 @@ def main():
         print("count loop: "cnt_loop)
         cnt_loop =+ 1
 
-    return psi
+    return beta, psi
 
 
+def get_location(current_location):
+    '''
+    This function changes the current location to the latitude and longitude
+    For example, the current_location is "대전시 서구 복수동 475"
+    This function returns the list containing latitude and longitude of that address
+    '''
+    current_address = parse.quote(current_location)
+    address = urllib.request.urlopen("http://maps.googleapis.com/maps/api/geocode/json?sensor=false&language=ko&address=" + location).read()
+
+    json = json.loads(address)
+    latitude = json["results"][0]["geometry"]["location"]["lat"]
+    longitude = json["results"][0]["geometry"]["location"]["lng"]
+    return [latitude, longitude]
+
+
+def test(L, current_coordinate, psi, beta):
+    '''
+    This function calculates the probability of visiting location reflecting user's interest.
+    In this step, we assume that all users are in the same space (in current address)
+    If you are interested in the specific user, check the index of that user, then you can get the information of that user
+    
+    Input:
+    1. L: the location latitude and longitude in the dataset
+    2. current_coordinate: current address coordinates
+    3. psi: estimated parameters
+    4. beta: the activity area
+
+    Output:
+    The probabilities of location i per each user
+    '''
+    theta = psi[0]; phi = psi[1]
+    current_distance = []
+    for loc in L:
+        temp = np.exp(-0.5 * beta * np.linalg.norm(loc - current_coordinate))
+        current_distance.append(temp)
+
+    current_distance = np.array(current_distance).reshape(1, -1)
+    recommend_prob_numer = phi * current_distance
+    recommend_prob_denom = recommend_prob_numer.sum(axis=1).reshape(-1, 1)
+    recommend_prob = recommend_prob_numer / recommend_prob_denom
+
+    recommend_prob = theta @ recommend_prob
+                      
+    return recommend_prob
+
+
+def find_recommendation(recommend_prob, locId, df):
+    best_loc_id = np.argmax(recommend_prob, axis=1)
+    best_loc = [locId[x] for x in best_loc_id]
+    recommendation = []
+    for loc in best_loc:
+        rest = df[df['Restaurant ID']==loc]['Restaurant Name'].unique()
+        recommendation.append(rest[-1])
+                              
+    return recommendation
+
+def main():
+    df = load_data()
+    df_location = df[['Restaurant ID', 'Restaurant Latitude', 'Restaurant Longitude']]
+    df_user = df[['Member ID', 'Restaurant ID']]
+    location = sorted(list(set([tuple(x) for x in df_loc.to_records(index=False)])))
+    locId = sorted(df_user['Restaurant ID'].unique())
+    L = np.array([[x[1], x[2]] for x in location])
+    
+    beta, psi = parameter_estimation()
+    current_location = input("Enter the current space:")
+    current_coordinate = get_location(current_location)
+
+    recommend_prob = test(L, current_coordinate, psi, beta)
+    print(recommend_prob)
+
+    recommendation = find_recommendation(recommend_prob, locId, df)
+    print(recommendation)
+    
+    
 if __name__ == '__main__':
     main()
