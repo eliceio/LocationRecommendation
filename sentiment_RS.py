@@ -1,3 +1,16 @@
+import pandas as pd
+import numpy as np
+
+def load_data():
+    df = pd.read_csv('/data/daejeon.csv', delimiter='\t', index_col=False)
+    return df
+
+def get_pref_mats(df):
+    return pref_checkin, pref_sentiment
+
+def compute_pref_final(pref_checkin, pref_sentiment):
+    return pref_final
+
 def main():
     
     load_data()
