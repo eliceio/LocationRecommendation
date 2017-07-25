@@ -242,7 +242,7 @@ def M(visited_loc_user, topic_posterior_prob, Psi, distance, N, Z ,I, loc_Id):
     loglike = Topic_post_prob * log_Theta * P
 
     Q = -tf.reduce_sum(tf.sparse_tensor_dense_matmul(Indices, tf.transpose(tf.reshape(loglike, [-1, I]))))
-    Phi_grad = tf.negative(tf.gradients(Q, Phi))
+    Phi_grad = tf.gradients(Q, Phi)
 
     sess = tf.Session()
 
