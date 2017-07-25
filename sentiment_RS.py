@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from scipy.stats import pearsonr
 
 '''
 Auther: Sumin Lim (KAIST)
@@ -60,35 +61,65 @@ def compute_pref_final(pref_checkin, pref_sentiment):
     Output:
     pref_final, final preference matrix
     '''
-    pref_final = pref_checkin - np.sign(pref_checkin - pref_sentiment) * np.
+    pref_final = pref_checkin - np.sign(pref_checkin - pref_sentiment) * np.heaviside(np.abs(pref_checkin - pref_sentiment)-2, 0.5)
     return pref_final
+
+
+def get_UV(N, I, Z):
+    U = np.random.rand(N, Z)
+    V = np.random.rand(Z, I)
+
+    return U, V
+
+def get_sim_u(pref_final):
+    N, _ = pref_final.shape
+    sim_u = []
+    for n in range(N):
+        temp = []
+        for i in range(N):
+            temp.append(pearsonr(pref_final[n], pref_final[i])[0])
+        sim_u.append(temp)
+
+    sim_u = np.array(sim_U)
+    return sim_u
+
+def get_sim_v():
+    '''
+    For two venues, the similarity score is set to 1 if both venues have the same sub-category in Foursquare
+    and set 0 if there is no overlapping sub-category
+
+    So, we need additional data - category and sub-category for the restaurants
+    '''
+    return sim_v
+
 
 def main():
     
-    load_data()
-    
-    pref_checkin,pref_sentiment = get_pref_mats()
-    # input: 
+    df = load_data()
+
+    # input: dataFrame
     # output: ndarray
-    
-    pref_final = compute_pref_final(pref_checkin, pref_sentiment) # R
-    # input:
+    pref_checkin,pref_sentiment = get_pref_mats(df)
+
+    # input: ndarray
     # output: ndarray
     # Eq. (1)
-    
-    N, I = pref_final.shape
+    pref_final = compute_pref_final(pref_checkin, pref_sentiment) # R
+
     # N: # of users
     # I: # of locations
-    
+    N, I = pref_final.shape
+
+    # Z: user-latent space, location-latent space    
     Z = int(input()) 
-    # Z: user-latent space, location-latent space
-    
+
+    # random initialization    
     U,V = get_UV(N,I,Z)
-    # random initialization
+
     
     while until converge:
-        simU = get_similarity(U)
-        simV = get_similarity(V)
+        sim_u = get_sim_u(U)
+        sim_v = get_sim_v(V)
         # pearson correlation coefficient
         
         lambda_u, lambda_v, alpha, beta = get_coefficient(R, simU, simV, U, V)
