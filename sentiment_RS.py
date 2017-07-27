@@ -12,7 +12,7 @@ def load_data():
     '''
     load data. This file uses temp data (daejeon.csv)
     '''
-    df = pd.read_csv('/data/daejeon.csv', delimiter='\t', index_col=False)
+    df = pd.read_csv('/data/Daejeon_dataset.csv', delimiter='\t', index_col=False)
     return df
 
 def get_pref_mats(df):
@@ -66,12 +66,29 @@ def compute_pref_final(pref_checkin, pref_sentiment):
 
 
 def get_UV(N, I, Z):
+    '''
+    This function initialize two matrices U and V
+
+    Input:
+    1. N: the number of users
+    2. I: the number of locations (items)
+    3. Z: the dimension of latent space 
+
+    Output:
+    randomly initialized U,V 
+    '''
     U = np.random.rand(N, Z)
     V = np.random.rand(Z, I)
 
     return U, V
 
 def get_sim_u(pref_final):
+    '''
+    This function returns similarity of users
+
+    Input: pref_final, which is the return matrix of the compute_pref_final function
+    Output: similarity of users, N * N matrix
+    '''
     N, _ = pref_final.shape
     sim_u = []
     for n in range(N):
@@ -82,6 +99,7 @@ def get_sim_u(pref_final):
 
     sim_u = np.array(sim_U)
     return sim_u
+
 
 def get_sim_v():
     '''
