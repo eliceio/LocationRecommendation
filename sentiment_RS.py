@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, logistic
+from scipy.special import expit
 
 '''
 Auther: Sumin Lim (KAIST)
@@ -97,18 +98,69 @@ def get_sim_u(pref_final):
             temp.append(pearsonr(pref_final[n], pref_final[i])[0])
         sim_u.append(temp)
 
-    sim_u = np.array(sim_U)
+    sim_u = np.array(sim_u)
     return sim_u
 
 
-def get_sim_v():
+def get_sim_v(df):
     '''
     For two venues, the similarity score is set to 1 if both venues have the same sub-category in Foursquare
     and set 0 if there is no overlapping sub-category
 
-    So, we need additional data - category and sub-category for the restaurants
+    If two restaurants have the same cuisine code, similarity score is set to 1, else 0.
     '''
+    location = []
+    for index, row in df.iterrows():
+        tmp = [row['Restaurant ID'], row['Restaurant code']]
+        if tmp not in location:
+            location.append(temp)
+
+    sim_v = []
+    I = len(location)
+    
+    for i in range(I):
+        temp = []
+        current_code = location[i][1]
+        for j in range(I):
+            if location[j][1] == current_code:
+                temp.append(1)
+            else:
+                temp.append(0)
+        sim_v.append(temp)
+        
     return sim_v
+
+
+def get_coefficient(pref_final, sim_u, sim_v, U, V):
+    '''
+    lambda_u = sigma^2_R / sigma^2_U
+    lambda_v = sigma^2_R / sigma^2_V
+    alpha = sigma^2_R / sigma^2_simU
+    beta = sigma^2_R / sigma^2_simV
+    '''
+    var_R = np.var(pref_final)
+    lambda_u = var_R / np.var(U)
+    lambda_v = var_R / np.var(V)
+    alpha = var_R / np.var(sim_u)
+    beta = var_R / np.var(sim_v)
+    
+    return lambda_u, lambda_v, alpha, beta
+
+
+def get_log_posterior(pref_final, sim_u, sim_v, U, V, lambda_u, lambda_v, alpha, beta):
+    '''
+    Calculate the log posterior probability of U and V keeping the variance parameter fixed. 
+    In later, minimize the log posterior which is the return value of this function
+    '''
+    first_term = np.sum(pref_final - expit(U @ V))
+    second_term = lambda_u * np.sum(U @ U.T) + lambda_v * np.sum(V @ V.T)
+    third_term = alpha * np.sum((U - (sim_u @ U)) @ (U - (sim_u @ U)).T)
+    fourth_term = beta * np.sum((V.T - (sim_v @ V.T)) @ (V.T - (sim_v @ V.T)).T)
+    log_posterior = 0.5 * (first_term + second_term + third_term + fourth_term)
+    
+    return log_posterior
+
+
 
 
 def main():
@@ -134,20 +186,21 @@ def main():
     # random initialization    
     U,V = get_UV(N,I,Z)
 
+    # get similarity of venues from dataset
+    sim_v = get_sim_v(df)
     
     while until converge:
+        # get similarity of users with pearson correlation coefficient
         sim_u = get_sim_u(U)
-        sim_v = get_sim_v(V)
-        # pearson correlation coefficient
         
-        lambda_u, lambda_v, alpha, beta = get_coefficient(R, simU, simV, U, V)
+        lambda_u, lambda_v, alpha, beta = get_coefficient(pref_final, sim_u, sim_v, U, V)
     
-        log_posterior = get_log_posterior(R, simU, simV, U, V)
+        log_posterior = get_log_posterior(pref_final, simU, simV, U, V)
         # in particular, objective function
         # Eq. (14)
     
-        grad_u = get_gradient(U, V, R, lambda_u, alpha, simU)
-        grad_v = get_gradient(U, V, R, lambda_v,  beta, simV)
+        grad_u = get_gradient(U, V, pref_final, lambda_u, alpha, sim_u)
+        grad_v = get_gradient(U, V, pref_final, lambda_v,  beta, sim_v)
         
         minization()
     
