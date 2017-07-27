@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy.stats import pearsonr, logistic
 from scipy.special import expit
+from scipy.optimize import minimize
 
 '''
 Auther: Sumin Lim (KAIST)
@@ -147,7 +148,7 @@ def get_coefficient(pref_final, sim_u, sim_v, U, V):
     return lambda_u, lambda_v, alpha, beta
 
 
-def get_log_posterior(pref_final, sim_u, sim_v, U, V, lambda_u, lambda_v, alpha, beta):
+def get_log_posterior(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta):
     '''
     Calculate the log posterior probability of U and V keeping the variance parameter fixed. 
     In later, minimize the log posterior which is the return value of this function
@@ -161,6 +162,24 @@ def get_log_posterior(pref_final, sim_u, sim_v, U, V, lambda_u, lambda_v, alpha,
     return log_posterior
 
 
+def get_grad_u(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta):
+
+    grad_u_first = (logistic.pdf(U @ V) * (expit(U @ V) - pref_final)) @ V.T
+    grad_u_second = lambda_u * U + alpha * (U - sim_u @ U)
+    grad_u_third = -alpha * (sim_u @ (U - sim_u @ U))
+    grad_u = grad_u_first + grad_u_second + grad_u_third
+
+    return grad_u
+
+
+def get_grad_v(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta):
+    
+    grad_v_first = (logistic.pdf(U @ V) * (expit(U @ V)-pref_final)).T @ U
+    grad_v_second = (lambda_v * V).T + beta * (V.T - sim_v @ V.T)
+    grad_v_third = -beta * (sim_v @ (V.T - sim_v @ V.T))
+    grad_v = grad_v_first + grad_v_second + grad_v_third
+
+    return grad_v
 
 
 def main():
@@ -189,21 +208,18 @@ def main():
     # get similarity of venues from dataset
     sim_v = get_sim_v(df)
     
-    while until converge:
+    # while until converge:
         # get similarity of users with pearson correlation coefficient
-        sim_u = get_sim_u(U)
+    sim_u = get_sim_u(U)
         
-        lambda_u, lambda_v, alpha, beta = get_coefficient(pref_final, sim_u, sim_v, U, V)
+    lambda_u, lambda_v, alpha, beta = get_coefficient(pref_final, sim_u, sim_v, U, V)
     
-        log_posterior = get_log_posterior(pref_final, simU, simV, U, V)
+    log_posterior = get_log_posterior(pref_final, simU, simV, U, V)
         # in particular, objective function
         # Eq. (14)
+
     
-        grad_u = get_gradient(U, V, pref_final, lambda_u, alpha, sim_u)
-        grad_v = get_gradient(U, V, pref_final, lambda_v,  beta, sim_v)
-        
-        minization()
-    
+    test = minimize(get_log_posterior, x0=U, args=(V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta))
     ## 끝 U, V 
     
     # performance evaluation
