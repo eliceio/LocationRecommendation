@@ -227,7 +227,7 @@ def main():
         
     lambda_u, lambda_v, alpha, beta = get_coefficient(pref_final, sim_u, sim_v, U, V)
     
-    log_posterior = get_log_posterior(pref_final, simU, simV, U, V)
+    log_posterior = get_log_posterior(U, V, pref_final, simU, simV, lambda_u, lambda_v, alpha, beta, N, I, Z)
         # in particular, objective function
         # Eq. (14)
 
