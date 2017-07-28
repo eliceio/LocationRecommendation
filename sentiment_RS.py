@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import scipy as sp
 from scipy.stats import pearsonr, logistic
 from scipy.special import expit
 from scipy.optimize import minimize
@@ -148,11 +149,13 @@ def get_coefficient(pref_final, sim_u, sim_v, U, V):
     return lambda_u, lambda_v, alpha, beta
 
 
-def get_log_posterior(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta):
+def get_log_posterior(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z):
     '''
     Calculate the log posterior probability of U and V keeping the variance parameter fixed. 
     In later, minimize the log posterior which is the return value of this function
     '''
+    U = sp.resize(U, (N, Z))
+    V = sp.resize(V, (Z, I))
     first_term = np.sum(pref_final - expit(U @ V))
     second_term = lambda_u * np.sum(U @ U.T) + lambda_v * np.sum(V @ V.T)
     third_term = alpha * np.sum((U - (sim_u @ U)) @ (U - (sim_u @ U)).T)
@@ -162,22 +165,32 @@ def get_log_posterior(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha,
     return log_posterior
 
 
-def get_grad_u(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta):
-
+def get_grad_u(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z):
+    
+    U = sp.resize(U, (N, Z))
+    V = sp.resize(V, (Z, I))
+    
     grad_u_first = (logistic.pdf(U @ V) * (expit(U @ V) - pref_final)) @ V.T
     grad_u_second = lambda_u * U + alpha * (U - sim_u @ U)
     grad_u_third = -alpha * (sim_u @ (U - sim_u @ U))
     grad_u = grad_u_first + grad_u_second + grad_u_third
 
+    grad_u = np.ndarray.flatten(grad_u)
+
     return grad_u
 
 
-def get_grad_v(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta):
+def get_grad_v(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z):
+
+    U = sp.resize(U, (N, Z))
+    V = sp.resize(V, (Z, I))
     
     grad_v_first = (logistic.pdf(U @ V) * (expit(U @ V)-pref_final)).T @ U
     grad_v_second = (lambda_v * V).T + beta * (V.T - sim_v @ V.T)
     grad_v_third = -beta * (sim_v @ (V.T - sim_v @ V.T))
     grad_v = grad_v_first + grad_v_second + grad_v_third
+
+    grad_v = np.ndarray.flatten(grad_v)
 
     return grad_v
 
@@ -219,7 +232,19 @@ def main():
         # Eq. (14)
 
     
-    test = minimize(get_log_posterior, x0=U, args=(V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta))
+    u_res = minimize(get_log_posterior,
+                     x0 = U, args = (V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z),
+                     jac = get_grad_u)
+
+    v_res = minimize(get_log_posterior,
+                     x0 = V, args = (U, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z),
+                     jac = get_grad_v)
+
+    estimated_u = u_res.x
+    estimated_v = v_res.x
+
+    estimated_u = estimated_u.reshape(N, Z)
+    estimated_v = estimated_v.reshape(Z, I)
     ## 끝 U, V 
     
     # performance evaluation
