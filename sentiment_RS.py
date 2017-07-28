@@ -231,20 +231,35 @@ def main():
         # in particular, objective function
         # Eq. (14)
 
-    
-    u_res = minimize(get_log_posterior,
-                     x0 = U, args = (V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z),
-                     jac = get_grad_u)
+    while True:
+        u_res = minimize(get_log_posterior,
+                         x0 = U, args = (V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z),
+                         jac = get_grad_u)
 
-    v_res = minimize(get_log_posterior,
-                     x0 = V, args = (U, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z),
-                     jac = get_grad_v)
+        v_res = minimize(get_log_posterior,
+                         x0 = V, args = (U, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z),
+                         jac = get_grad_v)
 
-    estimated_u = u_res.x
-    estimated_v = v_res.x
+        estimated_U = u_res.x.reshape(N, Z)
+        estimated_V = v_res.x.reshape(Z, I)
 
-    estimated_u = estimated_u.reshape(N, Z)
-    estimated_v = estimated_v.reshape(Z, I)
+        cond = np.sqrt(np.sum(np.square(U - estimated_U)) + np.sum(np.square(V - estimated_V)))
+        condition = cond < 1e-06
+
+        print("condition value:", cond)
+        print("U:", U)
+        print("V:", V)
+        print("estimated_U:", estimated_U)
+        print("estimated_V:", estimated_V)
+        print("condition:", condition)
+
+        if condition:
+            break
+
+        U, V = estimated_U, estimated_V
+        
+                                      
+
     ## 끝 U, V 
     
     # performance evaluation
