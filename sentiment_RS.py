@@ -81,7 +81,7 @@ def split_train_test(pref_final):
         if len(visited) == 1:
             pass
         elif len(visited) > 3:
-            test_pref = np.random.choice(visitied, size=3, replace=False)
+            test_pref = np.random.choice(visited, size=3, replace=False)
             train[user, test_pref] = 0.
             test[user, test_pref] = pref_final[user, test_pref]
 
