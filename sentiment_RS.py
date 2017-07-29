@@ -68,6 +68,29 @@ def compute_pref_final(pref_checkin, pref_sentiment):
     return pref_final
 
 
+def split_train_test(pref_final):
+    '''
+    Split train and test set
+    '''
+
+    test = np.zeros(pref_final.shape)
+    train = pref_final.copy()
+    N = pref_final.shape[0]
+    for user in range(N):
+        visited = pref_final[user, :].nonzero()[0]
+        if len(visited) == 1:
+            pass
+        elif len(visited) > 3:
+            test_pref = np.random.choice(visitied, size=3, replace=False)
+            train[user, test_pref] = 0.
+            test[user, test_pref] = pref_final[user, test_pref]
+
+    # Check train and test set is independent
+    assert (np.all((train * test) == 0))
+    
+    return train, test
+
+
 def get_UV(N, I, Z):
     '''
     This function initialize two matrices U and V
@@ -218,12 +241,15 @@ def main():
     print("making final preference matrix")
     pref_final = compute_pref_final(pref_checkin, pref_sentiment) # R
 
+    print("making training set and test set")
+    train, test = split_train_test(pref_final)
+
     # N: # of users
     # I: # of locations
     N, I = pref_final.shape
 
     # Z: user-latent space, location-latent space
-    Z = int(input("Input the number of latent space:")) 
+    Z = 10
 
     # random initialization
     print("initialize U, V")
@@ -238,37 +264,40 @@ def main():
     sim_u = get_sim_u(U)
 
     print("get coefficient")
-    lambda_u, lambda_v, alpha, beta = get_coefficient(pref_final, sim_u, sim_v, U, V)
+    lambda_u, lambda_v, alpha, beta = get_coefficient(train, sim_u, sim_v, U, V)
 
     print("get log_posterior")
-    log_posterior = get_log_posterior(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z)
+    log_posterior = get_log_posterior(U, V, train, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z)
         # in particular, objective function
         # Eq. (14)
 
     cnt = 0
     while True:
         cnt += 1
-        print("================= In the While Loop =====================")
+        print("==================== In the While Loop =======================")
         print(" %d th iteration" % cnt)
         u_res = minimize(get_log_posterior,
-                         x0 = U, args = (V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z),
+                         x0 = U, args = (V, train, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z),
                          jac = get_grad_u)
 
         v_res = minimize(get_log_posterior,
-                         x0 = V, args = (U, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z),
+                         x0 = V, args = (U, train, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z),
                          jac = get_grad_v)
 
         estimated_U = u_res.x.reshape(N, Z)
         estimated_V = v_res.x.reshape(Z, I)
 
-        cond = np.sqrt(np.sum(np.square(U - estimated_U)) + np.sum(np.square(V - estimated_V)))
+        cond_u = np.sum(np.square(U - estimated_U)); cond_v = np.sum(np.square(V - estimated_V))
+        cond = np.sqrt(cond_u + cond_v)
         condition = cond < 0.1
 
-        print("condition value:", cond)
-        print("U:", U)
-        print("V:", V)
-        print("estimated_U:", estimated_U)
-        print("estimated_V:", estimated_V)
+        print("---------------------------------------------------------------")
+        print("CONDITION")
+        print("u:", cond_u, "v:", cond_v)
+        print()
+        print("PARAMETERS")
+        print("alpha:", alpha, "beta:", beta, "lambda_u:", lambda_u, "lambda_v:", lambda_v)
+        print()
         print("condition:", condition)
 
         if condition:
@@ -276,7 +305,7 @@ def main():
 
         U, V = estimated_U, estimated_V
 
-        lambda_u, lambda_v, alpha, beta = get_coefficient(pref_final, sim_u, sim_v, U, V)
+        lambda_u, lambda_v, alpha, beta = get_coefficient(train, sim_u, sim_v, U, V)
         
 
                                       
@@ -285,7 +314,9 @@ def main():
     
     # performance evaluation
     ## Eq. (17) & (18)
-    MAE, RMSE = compute_metrics(U, V, pref_final)
+    MAE, RMSE = compute_metrics(U, V, test)
+    print("\n\n=========================================================")
+    print("testing")
     print("MAE:", MAE)
     print("RMSE:", RMSE)
     
