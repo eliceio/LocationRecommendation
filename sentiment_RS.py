@@ -195,6 +195,13 @@ def get_grad_v(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, 
     return grad_v
 
 
+def compute_metrics(U, V, pref_final):
+    R_hat = U @ V
+    T = pref_final.shape[0] * pref_final.shape[1]
+    MAE = np.sum(np.abs(pref_final - R_hat)) / T
+    RMSE = np.sqrt(np.sum(np.square(pref_final - R_hat)) / T)
+    return MAE, RMSE
+
 def main():
 
     print("load data")
@@ -268,14 +275,19 @@ def main():
             break
 
         U, V = estimated_U, estimated_V
+
         lambda_u, lambda_v, alpha, beta = get_coefficient(pref_final, sim_u, sim_v, U, V)
         
+
                                       
 
     ## 끝 U, V 
     
     # performance evaluation
     ## Eq. (17) & (18)
+    MAE, RMSE = compute_metrics(U, V, pref_final)
+    print("MAE:", MAE)
+    print("RMSE:", RMSE)
     
 
     # Recommendation
