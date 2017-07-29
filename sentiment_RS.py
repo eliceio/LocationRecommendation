@@ -15,7 +15,7 @@ def load_data():
     '''
     load data. This file uses temp data (daejeon.csv)
     '''
-    df = pd.read_csv('/data/Daejeon_dataset.csv', delimiter='\t', index_col=False)
+    df = pd.read_csv('data/Daejeon_dataset.csv', delimiter='\t', index_col=False)
     return df
 
 def get_pref_mats(df):
@@ -115,7 +115,7 @@ def get_sim_v(df):
     for index, row in df.iterrows():
         tmp = [row['Restaurant ID'], row['Restaurant code']]
         if tmp not in location:
-            location.append(temp)
+            location.append(tmp)
 
     sim_v = []
     I = len(location)
@@ -203,42 +203,53 @@ def compute_metrics(U, V, pref_final):
     return MAE, RMSE
 
 def main():
-    
+
+    print("load data")
     df = load_data()
 
     # input: dataFrame
     # output: ndarray
+    print("making preference matrices")
     pref_checkin,pref_sentiment = get_pref_mats(df)
 
     # input: ndarray
     # output: ndarray
     # Eq. (1)
+    print("making final preference matrix")
     pref_final = compute_pref_final(pref_checkin, pref_sentiment) # R
 
     # N: # of users
     # I: # of locations
     N, I = pref_final.shape
 
-    # Z: user-latent space, location-latent space    
-    Z = int(input()) 
+    # Z: user-latent space, location-latent space
+    Z = int(input("Input the number of latent space:")) 
 
-    # random initialization    
+    # random initialization
+    print("initialize U, V")
     U,V = get_UV(N,I,Z)
 
     # get similarity of venues from dataset
+    print("get similarity of U, V")
     sim_v = get_sim_v(df)
     
     # while until converge:
         # get similarity of users with pearson correlation coefficient
     sim_u = get_sim_u(U)
-        
+
+    print("get coefficient")
     lambda_u, lambda_v, alpha, beta = get_coefficient(pref_final, sim_u, sim_v, U, V)
-    
-    log_posterior = get_log_posterior(U, V, pref_final, simU, simV, lambda_u, lambda_v, alpha, beta, N, I, Z)
+
+    print("get log_posterior")
+    log_posterior = get_log_posterior(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z)
         # in particular, objective function
         # Eq. (14)
 
+    cnt = 0
     while True:
+        cnt += 1
+        print("================= In the While Loop =====================")
+        print(" %d th iteration" % cnt)
         u_res = minimize(get_log_posterior,
                          x0 = U, args = (V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z),
                          jac = get_grad_u)
@@ -251,7 +262,7 @@ def main():
         estimated_V = v_res.x.reshape(Z, I)
 
         cond = np.sqrt(np.sum(np.square(U - estimated_U)) + np.sum(np.square(V - estimated_V)))
-        condition = cond < 1e-06
+        condition = cond < 0.1
 
         print("condition value:", cond)
         print("U:", U)
@@ -266,11 +277,8 @@ def main():
         U, V = estimated_U, estimated_V
 
         lambda_u, lambda_v, alpha, beta = get_coefficient(pref_final, sim_u, sim_v, U, V)
+        
 
-
-    MAE, RMSE = compute_metrics(U, V, pref_final)
-    print("MAE:", MAE)
-    print("RMSE:", RMSE)
                                       
 
     ## 끝 U, V 
@@ -281,3 +289,5 @@ def main():
 
     # Recommendation
     
+if __name__ == "__main__":
+    main()
