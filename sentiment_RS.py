@@ -285,6 +285,9 @@ def main():
     
     # performance evaluation
     ## Eq. (17) & (18)
+    MAE, RMSE = compute_metrics(U, V, pref_final)
+    print("MAE:", MAE)
+    print("RMSE:", RMSE)
     
 
     # Recommendation
