@@ -1,5 +1,5 @@
 '''
-@author: Sumin Lim
+@author: Sumin Limm, Hyunji Lee
 
 Class version
 '''
@@ -10,6 +10,61 @@ import pandas as pd
 from scipy.optimize import minimize
 from scipy.stats import pearsonr, logistic
 from scipy.special import expit
+import pdb
+
+def get_log_posterior(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z):
+    
+    U = sp.resize(U, (N, Z))
+    V = sp.resize(V, (Z, I))
+    
+    first_term = np.sum(pref_final - expit(U @ V))
+    second_term = lambda_u * np.sum(U @ U.T) + lambda_v * np.sum(V @ V.T)
+    third_term = alpha * np.sum((U - (sim_u @ U)) @ (U - (sim_u @ U)).T)
+    fourth_term = beta * np.sum((V.T - (sim_v @ V.T)) @ (V.T - (sim_v @ V.T)).T)
+    
+    log_posterior = 0.5 * (first_term + second_term + third_term + fourth_term)
+    
+    return log_posterior
+
+def get_grad_u(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z):
+        
+    U = sp.resize(U, (N, Z))
+    V = sp.resize(V, (Z, I))
+        
+    grad_u_first = (logistic.pdf(U @ V) * (expit(U @ V) - pref_final)) @ V.T
+    grad_u_second = lambda_u * U + alpha * (U - sim_u @ U)
+    grad_u_third = -alpha * (sim_u @ (U - sim_u @ U))
+    grad_u = grad_u_first + grad_u_second + grad_u_third
+
+    grad_u = np.ndarray.flatten(grad_u)
+
+    return grad_u
+
+
+def get_grad_v(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z):
+    
+    U = sp.resize(U, (N, Z))
+    V = sp.resize(V, (Z, I))
+        
+    grad_v_first = (logistic.pdf(U @ V) * (expit(U @ V)-pref_final)).T @ U
+    grad_v_second = (lambda_v * V).T + beta * (V.T - sim_v @ V.T)
+    grad_v_third = -beta * (sim_v @ (V.T - sim_v @ V.T))
+    grad_v = grad_v_first + grad_v_second + grad_v_third
+    grad_v = np.ndarray.flatten(grad_v)
+    
+    return grad_v
+
+
+def compute_metrics(U, V, pref_final):
+    
+    R_hat = U @ V
+    T = pref_final.shape[0] * pref_final.shape[1]
+    MAE = np.sum(np.abs(pref_final - R_hat)) / T
+    RMSE = np.sqrt(np.sum(np.square(pref_final - R_hat)) / T)
+    
+    return MAE, RMSE
+
+
 
 class SentimentRecommend():
     '''
@@ -18,6 +73,9 @@ class SentimentRecommend():
         pref_final, sim_u, sim_v,
         lambda_v, lambda_u
         alpha, beta
+        train, test
+
+        self.U, self.V, self.train, self.sim_u, self.sim_v, self.lambda_u, self.lambda_v, self.alpha, self.beta, self.N, self.I, self.Z
     ''' 
     def __init__(self, df, num_latent):
 
@@ -96,9 +154,19 @@ class SentimentRecommend():
         self.pref_final = self.pref_checkin - np.sign(self.pref_checkin - self.pref_sentiment) * np.heaviside(np.abs(self.pref_checkin - self.pref_sentiment)-2, 0.5)
     
     def __get_sim_u(self):
+
+        print("__get_sim_u")
         N, _ = self.pref_final.shape
         sim_u = []
+        #pdb.set_trace()
+
+        cnt = 1
         for n in range(N):
+            #loop log
+            if n%(int(N/10)) == 0 and n!=0:
+                print("get_sim_u_complete: {:d} %".format(cnt*10))
+                cnt += 1
+
             temp = []
             for i in range(N):
                 temp.append(pearsonr(self.pref_final[n], self.pref_final[i])[0])
@@ -106,7 +174,10 @@ class SentimentRecommend():
 
         self.sim_u = np.array(sim_u)
 
+
     def __get_sim_v(self):
+
+        print("__get_sim_v")
         location = []
         for index, row in self.df.iterrows():
             tmp = [row['Restaurant ID'], row['Restaurant code']]
@@ -129,11 +200,11 @@ class SentimentRecommend():
 
     def __get_coefficient(self):
         print("get coefficient")
-        var_R = np.var(pref_final)
-        self.lambda_u = var_R / np.var(U)
-        self.lambda_v = var_R / np.var(V)
-        self.alpha = var_R / np.var(sim_u)
-        self.beta = var_R / np.var(sim_v)
+        var_R = np.var(self.pref_final)
+        self.lambda_u = var_R / np.var(self.U)
+        self.lambda_v = var_R / np.var(self.V)
+        self.alpha = var_R / np.var(self.sim_u)
+        self.beta = var_R / np.var(self.sim_v)
     
     def __split_train_test(self):
         print("making training set and test set")
@@ -155,65 +226,15 @@ class SentimentRecommend():
         self.train = train 
         self.test = test
 
-    def get_log_posterior(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z):
-        '''
-        Calculate the log posterior probability of U and V keeping the variance parameter fixed. 
-        In later, minimize the log posterior which is the return value of this function
-        '''
-        U = sp.resize(U, (N, Z))
-        V = sp.resize(V, (Z, I))
-        first_term = np.sum(pref_final - expit(U @ V))
-        second_term = lambda_u * np.sum(U @ U.T) + lambda_v * np.sum(V @ V.T)
-        third_term = alpha * np.sum((U - (sim_u @ U)) @ (U - (sim_u @ U)).T)
-        fourth_term = beta * np.sum((V.T - (sim_v @ V.T)) @ (V.T - (sim_v @ V.T)).T)
-        log_posterior = 0.5 * (first_term + second_term + third_term + fourth_term)
-        
-        return log_posterior
-
-    def get_grad_u(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z):
-        
-        U = sp.resize(U, (N, Z))
-        V = sp.resize(V, (Z, I))
-        
-        grad_u_first = (logistic.pdf(U @ V) * (expit(U @ V) - pref_final)) @ V.T
-        grad_u_second = lambda_u * U + alpha * (U - sim_u @ U)
-        grad_u_third = -alpha * (sim_u @ (U - sim_u @ U))
-        grad_u = grad_u_first + grad_u_second + grad_u_third
-
-        grad_u = np.ndarray.flatten(grad_u)
-
-        return grad_u
-
-
-    def get_grad_v(U, V, pref_final, sim_u, sim_v, lambda_u, lambda_v, alpha, beta, N, I, Z):
-
-        U = sp.resize(U, (N, Z))
-        V = sp.resize(V, (Z, I))
-        
-        grad_v_first = (logistic.pdf(U @ V) * (expit(U @ V)-pref_final)).T @ U
-        grad_v_second = (lambda_v * V).T + beta * (V.T - sim_v @ V.T)
-        grad_v_third = -beta * (sim_v @ (V.T - sim_v @ V.T))
-        grad_v = grad_v_first + grad_v_second + grad_v_third
-
-        grad_v = np.ndarray.flatten(grad_v)
-
-        return grad_v
-
-    # input: U, V, pref_final
-    def compute_metrics(self):
-        R_hat = self.U @ self.V
-        T = self.pref_final.shape[0] * self.pref_final.shape[1]
-        MAE = np.sum(np.abs(self.pref_final - R_hat)) / T
-        RMSE = np.sqrt(np.sum(np.square(self.pref_final - R_hat)) / T)
-        return MAE, RMSE
 
 
     def trainParams(self, maxiter, threshold, display=True):
         # Initialize
         self.__initialize()
+        
         niter = 0
 
-        self.__print_posterior(niter, display)
+        #self.__print_posterior(niter, display)
 
         cnt = 0
         for niter in range(1, maxiter):
@@ -223,13 +244,15 @@ class SentimentRecommend():
 
             u_res = minimize(get_log_posterior,x0 = self.U, args = (self.V, self.train, self.sim_u, self.sim_v, self.lambda_u, self.lambda_v, self.alpha, self.beta, self.N, self.I, self.Z),jac = get_grad_u)
 
+            pdb.set_trace()
+
             v_res = minimize(get_log_posterior,x0 = self.V, args = (self.U, self.train, self.sim_u, self.sim_v, self.lambda_u, self.lambda_v, self.alpha, self.beta, self.N, self.I, self.Z),jac = get_grad_v)
 
             estimated_U = u_res.x.reshape(self.N, self.Z)
             estimated_V = v_res.x.reshape(self.Z, self.I)
 
 
-            condition = np.sqrt(np.sum(np.square(self.U - U)) + np.sum(np.square(self.V - V))) < threshold
+            condition = np.sqrt(np.sum(np.square(self.U - estimated_U)) + np.sum(np.square(self.V - estimated_V))) < threshold
 
             if (condition is True):
                 break
@@ -245,7 +268,7 @@ class SentimentRecommend():
 
         ####### Utils to print likelihood for each iteration #######
     
-        MAE, RMSE = compute_metrics()
+        MAE, RMSE = compute_metrics(self.U, self.V, self.test)
         print("\n\n=========================================================")
         print("testing")
         print("MAE:", MAE)
