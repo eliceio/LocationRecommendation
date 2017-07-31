@@ -3,7 +3,6 @@
 
 Class version
 '''
-
 import numpy as np
 import scipy as sp
 import pandas as pd
@@ -242,9 +241,11 @@ class SentimentRecommend():
             print("==================== In the While Loop =======================")
             print(" %d th iteration" % cnt)
 
-            u_res = minimize(get_log_posterior,x0 = self.U, args = (self.V, self.train, self.sim_u, self.sim_v, self.lambda_u, self.lambda_v, self.alpha, self.beta, self.N, self.I, self.Z),jac = get_grad_u)
+            #pdb.set_trace()
 
-            pdb.set_trace()
+            # 1번째 loop에선 워닝나는데.. 2번째부턴 또 돌아가는 느낌? 뭐죠?
+            # RuntimeWarning: overflow encountered in exp
+            u_res = minimize(get_log_posterior,x0 = self.U, args = (self.V, self.train, self.sim_u, self.sim_v, self.lambda_u, self.lambda_v, self.alpha, self.beta, self.N, self.I, self.Z),jac = get_grad_u)
 
             v_res = minimize(get_log_posterior,x0 = self.V, args = (self.U, self.train, self.sim_u, self.sim_v, self.lambda_u, self.lambda_v, self.alpha, self.beta, self.N, self.I, self.Z),jac = get_grad_v)
 
@@ -252,9 +253,21 @@ class SentimentRecommend():
             estimated_V = v_res.x.reshape(self.Z, self.I)
 
 
-            condition = np.sqrt(np.sum(np.square(self.U - estimated_U)) + np.sum(np.square(self.V - estimated_V))) < threshold
+            cond_u = np.sum(np.square(self.U - estimated_U))
+            cond_v = np.sum(np.square(self.V - estimated_V))
+            condition = np.sqrt(cond_u + cond_v) < threshold
+            # condition = np.sqrt(np.sum(np.square(self.U - estimated_U)) + np.sum(np.square(self.V - estimated_V))) < threshold
 
-            if (condition is True):
+            print("---------------------------------------------------------------")
+            print("CONDITION")
+            print("u:", cond_u, "v:", cond_v)
+            print()
+            print("PARAMETERS")
+            print("alpha:", self.alpha, "beta:", self.beta, "lambda_u:", self.lambda_u, "lambda_v:", self.lambda_v)
+            print()
+            print("condition:", condition)
+
+            if (condition == True):
                 break
 
             # Update parameters
