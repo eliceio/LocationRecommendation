@@ -1,0 +1,141 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Location Recommendation</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href='{% static "vendor/bootstrap/css/bootstrap.css" %}' rel="stylesheet">
+    <link href='{% static "vendor/bootstrap/css/bootstrap.min.css" %}' rel="stylesheet">
+
+    
+    <!-- Custom Fonts -->
+    <link href= '{% static "vendor/font-awesome/css/font-awesome.min.css" %}' rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet" type="text/css">
+    <link href='https://fonts.googleapis.com/css?family=Kaushan+Script' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Roboto+Slab:400,100,300,700' rel='stylesheet' type='text/css'>
+
+    <!-- jquery dropdown css -->
+    <link href='{% static "css/jquery.dropdown.css" %}' rel="stylesheet">
+
+    <!-- Theme CSS -->
+    <link href='{% static "css/agency.min.css" %}' rel="stylesheet">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js" integrity="sha384-0s5Pv64cNZJieYFkXYOTId2HMA2Lfb6q2nAcx2n0RTLUnCAoTTsS0nKEO27XyKcY" crossorigin="anonymous"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js" integrity="sha384-ZoaMbDF+4LeFxg6WdScQ9nnR1QC2MIRxA1O9KWEXQwns1G8UNyIEZIQidzb0T1fo" crossorigin="anonymous"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+    <div>
+        <div class="bg-light-gray">
+            <div class="row">
+                <div class="col-md-4 col-sm-4 portfolio-item">
+                        <p>
+                            <h2>user: {{locations.0}}</h2>
+                        </p>
+
+                        <p>
+                            {% for user in locations %}
+                            <li>{{user.restaurant_id}}  {{user.restaurant_name}}</li>
+                            {% endfor %}  
+                        </p>
+                </div>
+
+                <div class="col-md-4 col-sm-8 portfolio-item">
+                    <br />
+                    <br />
+                    <div id="map" style="width:800px;height:600px;"></div>
+                    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=86db8f0337a4f5a7fa182ccd0a9e67f6"></script>
+                    <script>
+                        var container = document.getElementById('map');
+                        var options = {
+                            center: new daum.maps.LatLng(36.3504119, 127.38454750000005),
+                            level: 2
+                        };
+
+                        var map = new daum.maps.Map(container, options);
+
+                        // mark image
+                        var imageSrc = '{% static "img/flag_red.png" %}', // 마커이미지의 주소입니다    
+                        imageSize = new daum.maps.Size(36, 36), // 마커이미지의 크기입니다
+                        imageOption = {offset: new daum.maps.Point(50, 50)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
+
+                        {% for row in locations%}
+                            // 마커가 표시될 위치입니다 
+                            var markerPosition  = new daum.maps.LatLng({{row.restaurant_latitude}}, {{row.restaurant_longitude}}); 
+
+                            var markerImage = new daum.maps.MarkerImage(imageSrc, imageSize, imageOption);
+
+                        // 마커를 생성합니다
+                            var marker = new daum.maps.Marker({
+                                position: markerPosition,
+                                image: markerImage
+                            });
+
+                        // 마커가 지도 위에 표시되도록 설정합니다
+                            marker.setMap(map);
+
+                        // 인포윈도우 인데.. 마지막에 추가되는 마커의 인포만 뜨게 된다..왜지...
+                            // var iwContent = '<div style="padding:5px;">{{row.restaurant_name}}</div><div style="padding:5px;">{{row.restaurant_address}}</div>', // 인포윈도우에 표출될 내용으로 HTML 문자열이나 document element가 가능합니다
+                            // iwRemoveable = true; // removeable 속성을 ture 로 설정하면 인포윈도우를 닫을 수 있는 x버튼이 표시됩니다
+
+                            // // 인포윈도우를 생성합니다
+                            // var infowindow = new daum.maps.InfoWindow({
+                            //     content : iwContent,
+                            //     removable : iwRemoveable
+                            // });
+
+                            // // 마커에 클릭이벤트를 등록합니다
+                            // daum.maps.event.addListener(marker, 'click', function() {
+                            //       // 마커 위에 인포윈도우를 표시합니다
+                            //       infowindow.open(map, marker);  
+                            // });
+
+                        {% endfor %}
+
+                        // 아래 코드는 지도 위의 마커를 제거하는 코드입니다
+                        // marker.setMap(null); 
+                    </script>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+
+    <!-- jQuery -->
+    <script src='{% static "vendor/jquery/jquery.min.js" %}'></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src='{% static "vendor/bootstrap/js/bootstrap.min.js" %}'></script>
+
+    <!-- Plugin JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.3/jquery.easing.min.js" integrity="sha384-mE6eXfrb8jxl0rzJDBRanYqgBxtJ6Unn4/1F7q4xRRyIw7Vdg9jP4ycT7x1iVsgb" crossorigin="anonymous"></script>
+
+    <!-- jqury dropdown -->
+    <script src='{% static "/js/jquery.dropdown.js" %}'></script>
+
+    <!-- Contact Form JavaScript -->
+    <script src='{% static "js/jqBootstrapValidation.js" %}'></script>
+    <script src='{% static "js/contact_me.js" %}'></script>
+
+    <!-- Theme JavaScript -->
+    <script src='{% static "js/agency.min.js" %}'></script>
+
+</body>
+
+</html>

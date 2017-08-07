@@ -1,0 +1,16 @@
+>>> import csv
+>>> import os
+>>> path = "C:C:\Users\pep\django\bootstrap"
+  File "<console>", line 1
+SyntaxError: (unicode error) 'unicodeescape' codec can't decode bytes in position 4-5: truncated \UXXXXXXXX escape
+>>> path = "C:\Users\pep\django\bootstrap"
+  File "<console>", line 1
+SyntaxError: (unicode error) 'unicodeescape' codec can't decode bytes in position 2-3: truncated \UXXXXXXXX escape
+>>> path = "C:/Users/pep/django/bootstrap"
+>>> os.chdir(path)
+>>> from blog.models import Location
+>>> with open('Daejeon_dataset.csv') as csvfile:
+...     reader = csv.DictReader(csvfile)
+...     for row in reader:
+...             p = Location(member_id=row['Member ID'],member_nickname=row['Member Nickname'], rating=row['Rating'], retaurant_address=row['Restaurant Address'],restaurant_id=row['Restaurant ID'], restaurant_latitude=row['Restaurant Latitude'], restaurant_longitude=row['Restaurant Longitude'],restaurant_name=row['Restaurant Name'], restaurant_code=row['Restaurant code'], restaurant_subcode=row['Restaurant subcode'])
+...             p.save()
