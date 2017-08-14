@@ -20,7 +20,7 @@ def load_data():
 	# 							 [int(3), int(2), 0.8, 0.2] ]), 
 	# 				columns = ['Member ID','Restaurant ID','Restaurant Latitude','Restaurant Longitude'])
 
-	df = pd.read_csv('Daejeon_dataset_t.csv', delimiter='\t', index_col=False)
+	df = pd.read_csv('Daejeon_dataset.csv', delimiter='\t', index_col=False)
 	return df
 
 def cut_data(df, log_min, log_max):
@@ -67,20 +67,22 @@ def cut_data(df, log_min, log_max):
 	return user_log_index, df.loc[cut_index], training_data # training_data는 확인용
 
 def separate_data(user_index, df):
-	train_idx = []
-	test_idx = []
-	current_location_test = []
+   # pdb.set_trace()
+   train_idx = []
+   test_idx = []
+   current_location_test = []
 
-	for user_idx in user_index:
-		df_idx = df[df['Member ID']==user_idx].index.tolist()
-		train_idx += df_idx[:-1]
-		test_idx.append(df_idx[-1]) # 숫자 하나여서
+   for user_idx in user_index:
+      df_idx = df[df['Member ID']==user_idx].index.tolist() # DataFrame index
+      train_idx += df_idx #df_idx[:-1]
+      test_idx.append(df_idx[-1]) # 숫자 하나여서
 
-		user_log_L = np.array(df.loc[train_idx, ['Restaurant Latitude', 'Restaurant Longitude']])
-		current_location_test.append(np.mean(user_log_L, axis=0).tolist())
+      # user_log_L = np.array(df.loc[train_idx, ['Restaurant Latitude', 'Restaurant Longitude']])
+      user_log_L = np.array(df.loc[df_idx[:-1], ['Restaurant Latitude', 'Restaurant Longitude']])
+      current_location_test.append(np.mean(user_log_L, axis=0).tolist())
 
-	# return df_train, df_test, current_location_test
-	return df.loc[train_idx], df.loc[test_idx], current_location_test
+   # return df_train, df_test, current_location_test
+   return df.loc[train_idx], df.loc[test_idx], current_location_test
 
 
 ############################################################################
@@ -93,8 +95,8 @@ log_max = int(input("Enter the maximum number of log:"))
 user_log_index, df_cut, training_data = cut_data(df, log_min, log_max) # user_index는 test를 위한 data를 만들때 사용
 print("Complete rearrange data")
 
+# pdb.set_trace()
 df_train, df_test, current_location_test = separate_data(user_log_index, df_cut)
-pdb.set_trace()
 
 N = len(df_train['Member ID'].unique())
 I = len(df_train['Restaurant ID'].unique())
@@ -158,7 +160,7 @@ accuracy = accuracy/len(test_data)*100
 print("accuracy is %f" %accuracy)
 
 # np.save('psi_5_topic8', psi) # 5,5,10,8
-np.save('recommendation', np.array(recommendation))
+# np.save('recommendation', np.array(recommendation))
 
 pdb.set_trace()
 
