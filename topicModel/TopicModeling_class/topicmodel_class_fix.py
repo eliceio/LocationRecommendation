@@ -6,6 +6,8 @@ Paper: Kurashima T. et al., Geo Topic Model: Joint Modeling of User's Acitivity 
 
 This program implements location recommendation using geotag data
 '''
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 import numpy as np
 import pandas as pd
@@ -115,108 +117,6 @@ def theta_optimize(prob_loc_topic): # checked
 	theta_hat_denom = theta_hat_numer.sum()
 	theta_hat = theta_hat_numer / theta_hat_denom
 	return theta_hat
-
-def M2(P, visited_loc_user, topic_posterior_prob, Psi, distance, N, Z ,I, loc_Id): # unused
-	'''
-	This function is used for parameter estimation using EM algorithm
-	Estimate theta, and maximize the conditional expectation of the complete-data log likelihood, equation (4) in the paper
-
-	
-	Input:
-	1. visited_loc_user: the return value from the function get_visited_loc_user 
-	2. topic_posterior_prob: the return value from the function E
-	3. Psi: [theta, phi]
-	4. distance: dataFrame
-	5. N: the number of users
-	6. Z: the number of topics
-	7. I: the number of locations
-	8. loc_id: list containing the restaurant ID
-
-	Output:
-	psi: [theta, phi]
-	'''
-	# Theta
-	theta = []
-	for key in topic_posterior_prob.keys():
-		temp = theta_optimize(topic_posterior_prob[key])
-		theta.append(temp)
-	theta = np.array(theta)
-	
-	################################################################
-	# Phi
-	phi = Psi[1]
-	phat = []
-
-	# pdb.set_trace()
-	for key in topic_posterior_prob.keys():
-		phat.append(topic_posterior_prob[key].as_matrix())
-		# phat: topic_posterior_prob (5)을 N*(Z*I) 형태의 np.array로 변형한 것.
-
-	phat = np.array(phat)
-	phat1 = np.swapaxes(phat, 0, 1)
-	# phat의 정보를 topic별로, N*I로 변형.
-
-	indices = get_ind(visited_loc_user, loc_Id)
-
-	############################################
-	Indices = tf.SparseTensor(indices = indices, values = tf.ones(len(indices), dtype = tf.float64), dense_shape = [N, I])
-
-	# placeholder
-	Topic_post_prob = tf.placeholder(tf.float64, shape = [Z, N, I]) # shape ?/ M으로 가져온 topic_posterior_prob은 [N(3), Z, I]
-	Theta = tf.placeholder(tf.float64, shape = [N, Z])
-	Phi = tf.placeholder(tf.float64, shape = [Z, I])
-	Dist = tf.placeholder(tf.float64, shape = [I, I])
-	
-	pdb.set_trace()
-
-
-
-	## 
-	# 여기서 만약 self.prob_loc_topic이 있으면,
-	# 얘가 그냥 아래 코드에서 P가 됨(값 동일여부 확인함) --> 함수 M2
-	# 어쨌든, dataframe이 value인 dict.에서 dataframe만 잘 골라낼 수 있으면 아래 계산 안해도 됨.
-	# 근데 dataframe에서 변경이 더 어려울 듯.
-	# 바꾸려다가 일단 안함.
-
-	# Calculate P(visited_loc_user|z, R_u, Psi)
-	# Z * I
-	# front = tf.exp(Phi)
-
-	# N x I
-	# back = tf.sparse_tensor_dense_matmul(Indices, Dist)
-
-	# P_numer = tf.expand_dims(front, axis =1) * back # Z * N * I
-	# P_denom = tf.expand_dims(tf.reduce_sum(P_numer, axis = 2), axis = 2)
-	# P = P_numer / P_denom
-
-	log_Theta = tf.expand_dims(tf.transpose(tf.log(Theta)), axis = 2)
-
-	loglike = Topic_post_prob * log_Theta * P
-
-	Q = -tf.reduce_sum(tf.sparse_tensor_dense_matmul(Indices, tf.transpose(tf.reshape(loglike, [-1, I]))))
-	Phi_grad = tf.gradients(Q, Phi)
-
-	sess = tf.Session()
-
-
-	def objective(phi_):
-		phi_ = phi_.reshape(Z, I)
-		#phat_, theta_, phi_, distance_ = param
-		feed_dict={Topic_post_prob: phat1, Theta: theta, Phi: phi_, Dist: distance}
-		# pdb.set_trace()
-		return sess.run(Q, feed_dict={Topic_post_prob: phat1, Theta: theta, Phi: phi_, Dist: distance})
-
-	def gradient(phi_):
-		phi_ = phi_.reshape(Z, I)
-		#phat_, theta_, phi_, distance_ = param
-		feed_dict={Topic_post_prob: phat1, Theta: theta, Phi: phi_, Dist: distance}
-		ret = sess.run(Phi_grad, feed_dict={Topic_post_prob: phat1, Theta: theta, Phi: phi_, Dist: distance})
-		res = np.squeeze(ret).flatten()
-		return res
-
-	res =  minimize(objective, x0=phi, jac=gradient)
-	# pdb.set_trace()
-	return [theta, res.x]
 
 def M(visited_loc_user, topic_posterior_prob, Psi, distance, N, Z ,I, loc_Id): # half check
 	'''
@@ -340,6 +240,7 @@ class TopicModel():
 		self.df_user = self.df[['Member ID', 'Restaurant ID']]
 
 		self.location = sorted(list(set([tuple(x) for x in self.df_loc.to_records(index=False)])))
+		# pdb.set_trace()
 
 		self.L = np.array([[x[1], x[2]] for x in self.location])
 
@@ -347,6 +248,9 @@ class TopicModel():
 		self.mem_Id = sorted(self.df_user['Member ID'].unique())
 		
 		# pdb.set_trace() #2
+		## 여기서 원하는 log개수를 가지는 user들만 잘라내야함.
+		## --> 이걸 __get_visited_loc_user()안에서 ??
+		# df_loc과 df_user는 같은 갯수를 가지고 있음
 
 		# out: self.df_dist
 		self.__getDist()
@@ -521,6 +425,9 @@ class TopicModel():
 			phi = new_psi[1].reshape(self.Z, self.I)
 			self.psi = [theta, phi]
 
+			test_condition = np.sqrt(np.sum((pre_theta - theta)) + np.sum((pre_phi - phi)))
+			print(test_condition)
+
 			condition = np.all((pre_theta - theta) < 1e-10) and np.all((pre_phi - phi) < 1e-10)
 			
 			if condition == True:
@@ -561,22 +468,28 @@ class TopicModel():
 		Output:
 		The probabilities of location i per each user
 		'''
+		# pdb.set_trace()
 		theta = psi[0]; phi = psi[1]
 		current_distance = []
-		for loc in self.L:
-			temp = np.exp(-0.5 * beta * np.linalg.norm(loc - current_coordinate))
+		for loc in self.L: # self.L 모든 location의 geo정보, np.array
+			# pdb.set_trace()
+			temp = np.exp(-0.5 * beta * np.inner(loc-current_coordinate, loc-current_coordinate))
+			# temp = np.exp(-0.5 * beta * np.linalg.norm(loc - current_coordinate))
 			current_distance.append(temp)
 
+		# pdb.set_trace()
 		current_distance = np.array(current_distance).reshape(1, -1)
-		recommend_prob_numer = phi * current_distance
+		recommend_prob_numer = np.exp(phi) * current_distance # Z * I
 		recommend_prob_denom = recommend_prob_numer.sum(axis=1).reshape(-1, 1)
 		recommend_prob = recommend_prob_numer / recommend_prob_denom
 
-		recommend_prob = theta @ recommend_prob
+		# pdb.set_trace()
+		recommend_prob = theta @ recommend_prob # N * I
 						  
 		return recommend_prob
 
 	def find_recommendation(self, recommend_prob):
+		# pdb.set_trace()
 		best_loc_id = np.argmax(recommend_prob, axis=1)
 		best_loc = [self.loc_Id[x] for x in best_loc_id]
 		recommendation = []
@@ -584,4 +497,21 @@ class TopicModel():
 			rest = self.df[self.df['Restaurant ID']==loc]['Restaurant Name'].unique()
 			recommendation.append(rest[-1])
 								  
+		return recommendation
+
+	def find_recommendation2(self, recommend_prob, num):
+		# pdb.set_trace()
+		best_loc_id = np.fliplr(recommend_prob.argsort()) # 확률이 큰 순서대로 
+		best_loc_id = best_loc_id[:,:num]
+
+		best_loc = [ [self.loc_Id[xx] for xx in x] for x in best_loc_id]
+		
+		recommendation = []
+		for loc_num in best_loc:
+			temp = []
+			for loc in loc_num:
+				rest = self.df[self.df['Restaurant ID']==loc]['Restaurant Name'].unique()
+				temp.append(rest[-1])
+			recommendation.append(temp)
+
 		return recommendation
