@@ -17,3 +17,15 @@ class Location(models.Model):
 		#return str(self.member_id) + ":" + str(self.restaurant_id)
 		return str(self.member_id)
 
+# class Recommendation(models.Model):
+# 	user_number = models.ForeignKey(Location)
+# 	place_1 = models.CharField(max_length=20)
+# 	place_2 = models.CharField(max_length=20)
+# 	place_3 = models.CharField(max_length=20)
+# 	place_4 = models.CharField(max_length=20)
+# 	place_5 = models.CharField(max_length=20)
+
+# 	def __str__(self):
+# 		return str(self.user_number)
+
+
