@@ -325,6 +325,7 @@ class TopicModel():
                 self.visited_loc_user = visited_loc_user
                 print(visited_loc_user)
 
+
         def split_dataset(self):
                 
                 
@@ -505,6 +506,20 @@ class TopicModel():
                                                   
                 return recommend_prob
 
+        def find_recoomendation_random(self, num):
+                recommendation = []
+
+                for i in range(0, self.N):
+                    # Randomly sample 100% of df['Restaurant Name']
+                    df_rand = self.df['Restaurant Name'].sample(frac=1.0)
+                    
+                    # Randomly sample n elements from df_rand (n = num)
+                    df_rand = df_rand.sample(n = num)
+
+                    recommendation.append(df_rand.values.tolist())
+
+                return recommendation
+
         def find_recommendation(self, recommend_prob):
                 # pdb.set_trace()
                 best_loc_id = np.argmax(recommend_prob, axis=1)
@@ -532,3 +547,4 @@ class TopicModel():
                         recommendation.append(temp)
 
                 return recommendation
+
