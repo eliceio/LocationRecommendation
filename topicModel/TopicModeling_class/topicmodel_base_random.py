@@ -157,8 +157,9 @@ test_result = []
 
 # random accuracy mean list
 rand_acc_mean = []
-# random accuracy list
 
+# random accuracy list
+list_np_accuracy = []
 
 for recommend_num in range(1, max_recommend_num + 1):
 
@@ -170,14 +171,10 @@ for recommend_num in range(1, max_recommend_num + 1):
         accuracy = 0
 
         for user_idx, current_coordinate in enumerate(current_location_test):
-            # pdb.set_trace()
+
             recommend_prob = sys1.test(current_coordinate, psi, beta)
-            #recommendation = sys1.find_recommendation2(recommend_prob, num=5)
-
-            # # baseline_random
-            # recommendation = sys1.find_recoomendation_random(num=recommend_num)
-
-
+       
+            # baseline_random
             recommendation = sys1.find_recoomendation_random(num=recommend_num)
 
             test_result.append(recommendation[user_idx]) # N * num
@@ -192,16 +189,26 @@ for recommend_num in range(1, max_recommend_num + 1):
     # accuracy = accuracy/len(test_data)*100
     # print("accuracy is %f" %accuracy)
 
-    list_np_accuracy = np.array(list_accuracy)
-    list_np_accuracy = list_np_accuracy/len(test_data)*100
-    # for item in list_accuracy:
-    #     print("accuracy is %f" %item)
-    print("mean: %f" % np.mean(list_np_accuracy))
+    np_accuracy = np.array(list_accuracy)
+    np_accuracy = np_accuracy/len(test_data)*100
+    # for item in np_accuracy:
+        # print("accuracy is %f" %item)
 
-    rand_acc_mean.append(np.mean(list_np_accuracy))
+    list_np_accuracy.append(np_accuracy)
+
+    print("mean: %f" % np.mean(np_accuracy))
+    rand_acc_mean.append(np.mean(np_accuracy))
 
 
 print(rand_acc_mean)
+#print(list_np_accuracy)
+
+# create dataframe
+df_rand_acc_mean = pd.DataFrame(rand_acc_mean, columns = ['mean'])
+df_list_np_acc = pd.DataFrame(list_np_accuracy)
+df_rand_base = pd.concat([df_list_np_acc, df_rand_acc_mean], axis=1)
+df_rand_base.to_csv('base_random.csv',index=False, header=True, sep='\t')
+
 
 # np.save('psi_5_topic8', psi) # 5,5,10,8
 # np.save('recommendation', np.array(recommendation))
