@@ -331,6 +331,7 @@ class TopicModel():
                 
                 return self.trainSet, self.testSet
 
+
         def __psi_initialize(self, std = .1): # checked
                 '''
                 Initialize theta and phi
@@ -506,7 +507,7 @@ class TopicModel():
                                                   
                 return recommend_prob
 
-        def find_recoomendation_random(self, num):
+        def find_recommendation_random(self, num):
                 recommendation = []
 
                 for i in range(0, self.N):
@@ -517,6 +518,19 @@ class TopicModel():
                     df_rand = df_rand.sample(n = num)
 
                     recommendation.append(df_rand.values.tolist())
+
+                return recommendation
+
+        def find_recommendation_max(self, num):
+                recommendation = []
+
+                for i in range(0, self.N):
+                    log_cnt = self.df['Restaurant Name'].value_counts()
+                    log_cnt = log_cnt.index.tolist()
+
+                    # Take the first n items from log_cnt(n = num)
+                    top_log = log_cnt[:num]
+                    recommendation.append(top_log)
 
                 return recommendation
 
