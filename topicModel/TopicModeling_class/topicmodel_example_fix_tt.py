@@ -11,23 +11,30 @@ def load_data():
 	'''
 	Read data file
 	File format: .csv, separated by tab
+	1) Articifial_data (using generate_toydata.py)
+	2) MangoPlage_data  
 	'''
-
-	# toy_data
-	# df = pd.DataFrame(np.array([ [int(1), int(1), 0.2, 0.8], 
-	# 							 [int(2), int(2), 0.8, 0.2], 
-	# 							 [int(3), int(1), 0.2, 0.8], 
-	# 							 [int(3), int(2), 0.8, 0.2] ]), 
-	# 				columns = ['Member ID','Restaurant ID','Restaurant Latitude','Restaurant Longitude'])
-
-	df = pd.read_csv('Daejeon_dataset.csv', delimiter='\t', index_col=False)
+	
+	## Articifial_data
+	'''
+	User 7
+	Location 10
+	Beta 1 Topic 3
+	log_min = 4
+	log_max = 7
+	''' 
+	# df = pd.read_csv('toy_data_7_10.csv', delimiter='\t', index_col=False)
+	
+	## MangoPlage_data
+	df = pd.read_csv('Daejeon_dataset_t.csv', delimiter='\t', index_col=False)
 	return df
 
 def cut_data(df, log_min, log_max):
 	'''
 	log_min, log_max에 맞추어 data 자르기
-	잘라서, 축소된 df형태로 만드는 것이 목표
+	잘라서, 축소된 df형태로 만드는 것이 목표 
 	'''
+	# pdb.set_trace()
 	df_user = df[['Member ID', 'Restaurant ID']]
 	df_user = df_user.sort_values('Member ID')
 	
@@ -49,43 +56,55 @@ def cut_data(df, log_min, log_max):
 
 	idx_min = [idx for idx, item in enumerate(user_log_num) if item[1]>=log_min]
 	idx_max = [idx for idx, item in enumerate(user_log_num) if item[1]>=log_max+1]
-	user_log_num = user_log_num[idx_min[0]:idx_max[0]-1] # user index has to start from 1
+
+	# pdb.set_trace()
+	if idx_max == []: # idx_max가 []라는 이유는, 가지고 있는 데이터에 log_max보다 더 큰 log를 가지는 애가 없다는 말
+		user_log_num = user_log_num[idx_min[0]:idx_min[-1]+1] # +1은 list의 slicing
+	else:
+		user_log_num = user_log_num[idx_min[0]:idx_max[0]] # user index has to start from 1
 														 # [(user index, # of logs)]
 	user_log_num = [list(x) for x in user_log_num]
 	user_log_num = np.array(user_log_num)
 
 	user_log_index = user_log_num[:,0] # 여기 있는 number들을 'Member ID'로 하는 값만 추리기
-	
+	user_log_index = sorted(user_log_index)
+
+	# pdb.set_trace()
 	cut_index = []
 	training_data = []
-	for mem_id in user_log_index.tolist():
+	for mem_id in user_log_index: #.tolist():
 		temp = df[df['Member ID']==mem_id]
 		cut_index += temp.index.tolist()
 		training_data.append(temp['Restaurant Name'].tolist())
 
+	df_cut = df.loc[cut_index]
+	df_cut = df_cut.sort_values('Member ID')
+
 	# pdb.set_trace()
-	return user_log_index, df.loc[cut_index], training_data # training_data는 확인용
+	return user_log_index, df_cut, training_data # training_data는 확인용
 
 def separate_data(user_index, df):
-   # pdb.set_trace()
-   train_idx = []
-   test_idx = []
-   current_location_test = []
+	# pdb.set_trace()
+	train_idx = []
+	test_idx = []
+	current_location_test = []
 
-   for user_idx in user_index:
-      df_idx = df[df['Member ID']==user_idx].index.tolist() # DataFrame index
-      train_idx += df_idx #df_idx[:-1]
-      test_idx.append(df_idx[-1]) # 숫자 하나여서
+	for user_idx in user_index:
+		df_idx = df[df['Member ID']==user_idx].index.tolist() # DataFrame index
+		train_idx += df_idx #df_idx[:-1]
+		test_idx.append(df_idx[-1]) # 숫자 하나여서
 
-      # user_log_L = np.array(df.loc[train_idx, ['Restaurant Latitude', 'Restaurant Longitude']])
-      user_log_L = np.array(df.loc[df_idx[:-1], ['Restaurant Latitude', 'Restaurant Longitude']])
-      current_location_test.append(np.mean(user_log_L, axis=0).tolist())
+		# user_log_L = np.array(df.loc[train_idx, ['Restaurant Latitude', 'Restaurant Longitude']])
+		user_log_L = np.array(df.loc[df_idx[:-1], ['Restaurant Latitude', 'Restaurant Longitude']])
+		current_location_test.append(np.mean(user_log_L, axis=0).tolist())
 
-   # return df_train, df_test, current_location_test
-   return df.loc[train_idx], df.loc[test_idx], current_location_test
-
+	# return df_train, df_test, current_location_test
+	return df.loc[train_idx], df.loc[test_idx], current_location_test
 
 ############################################################################
+#########
+# Train #
+#########
 
 df = load_data()
 print("Complete load data")
@@ -95,8 +114,9 @@ log_max = int(input("Enter the maximum number of log:"))
 user_log_index, df_cut, training_data = cut_data(df, log_min, log_max) # user_index는 test를 위한 data를 만들때 사용
 print("Complete rearrange data")
 
-# pdb.set_trace()
 df_train, df_test, current_location_test = separate_data(user_log_index, df_cut)
+
+# pdb.set_trace()
 
 N = len(df_train['Member ID'].unique())
 I = len(df_train['Restaurant ID'].unique())
@@ -106,12 +126,15 @@ print("User: %d, Location: %d" %(N, I))
 beta = float(input("Enter the beta value:")) #
 Z = int(input("Enter the number of topic:")) #
 
-sys1 = TopicModel(df_train, beta, Z, N, I) #####################
+sys1 = TopicModel(df_train, df_test, beta, Z, N, I) # df_test는 test에 들어가는 log를 training에서 배제하기 위함
 
 # pdb.set_trace()
 
-# training
-beta, psi = sys1.trainParams(100) # 위 예제는 iteration 30에 학습 끝남.
+beta, psi = sys1.trainParams(maxiter = 100)
+print("***************************")
+print('Complete parameter training')
+
+# pdb.set_trace()
 
 ## 최종 코드:
 # [[0, 1],
@@ -132,6 +155,7 @@ beta, psi = sys1.trainParams(100) # 위 예제는 iteration 30에 학습 끝남.
 # [[-8, 8],[5,-5]]
 
 print(psi)
+np.save('psi_toy7_10', psi) 
 # pdb.set_trace() #-1
 
 ## accuracy 측정
@@ -143,6 +167,9 @@ print(psi)
 # current_coordinate = sys1.get_location(current_location)
 
 # 여기서 만들어진 code를 바꾸지 말고, test갯수만큼 for문을 통해 추천??
+print('stop')
+pdb.set_trace()
+
 test_data = df_test['Restaurant Name'].tolist()
 
 accuracy = 0
@@ -150,7 +177,7 @@ test_result = []
 for user_idx, current_coordinate in enumerate(current_location_test):
 	# pdb.set_trace()
 	recommend_prob = sys1.test(current_coordinate, psi, beta)
-	recommendation = sys1.find_recommendation2(recommend_prob, num=5)
+	recommendation = sys1.find_recommendation2(recommend_prob, num=I)
 	test_result.append(recommendation[user_idx]) # N * num
 
 	if test_data[user_idx] in recommendation[user_idx]:
@@ -160,7 +187,7 @@ accuracy = accuracy/len(test_data)*100
 print("accuracy is %f" %accuracy)
 
 # np.save('psi_5_topic8', psi) # 5,5,10,8
-# np.save('recommendation', np.array(recommendation))
+np.save('recommendation', np.array(recommendation))
 
 pdb.set_trace()
 
