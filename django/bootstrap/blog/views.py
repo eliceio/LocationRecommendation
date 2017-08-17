@@ -8,7 +8,7 @@ from .models import Location
 def index(request):
 
 	# 중복 뺸 유저아이디만 
-	locations = Location.objects.values('member_id').distinct()
+	locations = Location.objects.values('member_id', 'member_nickname').distinct()
 
 	context = {'locations' : locations}
 

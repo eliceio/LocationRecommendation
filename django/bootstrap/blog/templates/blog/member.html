@@ -1,148 +1,156 @@
-{% extends 'blog/base.html' %}
+{% extends 'blog/__base.html' %}
 {% load staticfiles %}
 
 
 {% block content %}
-    <div>
-        <div class="container">
-            <!-- 현재 위치 찾기  -->
-            <div class="row">
-                <div class="col-md-4 col-sm-4">
-                        <p>
-                            <h2>user: {{locations.0}}</h2>
-                        </p>
 
-                        <p>
-                            {% for user in locations %}
-                            <li>{{user.restaurant_id}}  {{user.restaurant_name}}</li>
-                            {% endfor %}  
-                        </p>
+<header>
+    <div class="container">
+        <div class="intro-text">
+             <div class="intro-lead-in">Welcome To Our Studio!</div>
+            <div class="intro-heading">{{locations.0.member_nickname}}, {{locations.0}}</div>
+        </div>
+    </div>
+</header>
 
-                       <!-- 현재 위치의 경도 위도 -->
-                        <h4>current geolocation</h4>
-                        <input type="text" id="current_lat" ></input>
-                        <input type="text" id="current_lng" ></input>
-            
-                </div>
+<section class="bg-light-gray">
+    <div class="container">
+        <!-- 현재 위치 찾기  -->
+        <div class="row" >
+            <div class="col-md-4 col-sm-4">
+                <p>
+                    <h2>Visited Restaurant</h2>
+                    {% for user in locations %}
+                <!--<li>{{user.restaurant_id}},  {{user.restaurant_name}},  {{user.restaurant_address}}</li>-->
+                <li>{{user.restaurant_name}},  {{user.restaurant_address}}</li>
+                {% endfor %}
+                </p>
 
-                <div class="col-md-4 col-sm-8">
-                    <br />
-                    <br />
-                    <div id="map" style="width:800px;height:600px;"></div>
-                    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=86db8f0337a4f5a7fa182ccd0a9e67f6"></script>
-
-                    <script>
-                        var mapContainer = document.getElementById('map'), // 지도를 표시할 div  
-                            mapOption = { 
-                                center: new daum.maps.LatLng(36.3504119, 127.38454750000005), // 지도의 중심좌표
-                                level: 2 // 지도의 확대 레벨
-                            };
-
-                        var map = new daum.maps.Map(mapContainer, mapOption); // 지도를 생성합니다
-                         
-                        // 마커를 표시할 위치와 title 객체 배열입니다 
-
-                        var positions = [];
-                        {% for row in locations %}
-                            positions.push({
-                                title: "{{row.restaurant_name}}" ,
-                                latlng: new daum.maps.LatLng({{row.restaurant_latitude}}, {{row.restaurant_longitude}})
-                            })
-                        {% endfor %}
-
-                        // 마커 이미지의 이미지 주소입니다
-                                        
-                        var imageSrc = '{% static "img/flag_blue.png" %}', // 마커이미지의 주소입니다    
-                        imageSize = new daum.maps.Size(30, 30), // 마커이미지의 크기입니다
-                        imageOption = {offset: new daum.maps.Point(40, 40)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
-                            
-                        for (var i = 0; i < positions.length; i ++) {
-
-                            
-                            // 마커 이미지를 생성합니다    
-                            var markerImage = new daum.maps.MarkerImage(imageSrc, imageSize, imageOption); 
-                            
-                            // 마커를 생성합니다
-                            var marker = new daum.maps.Marker({
-                                map: map, // 마커를 표시할 지도
-                                position: positions[i].latlng, // 마커를 표시할 위치
-                                title : positions[i].title, // 마커의 타이틀, 마커에 마우스를 올리면 타이틀이 표시됩니다
-                                image : markerImage // 마커 이미지 
-                            });
-                        }
-
-                        // 현재위치 표시 
-                        if (navigator.geolocation) {
-                            
-                            // GeoLocation을 이용해서 접속 위치를 얻어옵니다
-                            navigator.geolocation.getCurrentPosition(function(position) {
-                                
-                                lat = position.coords.latitude, // 위도
-                                lng = position.coords.longitude; // 경도
-                                
-                                document.getElementById('current_lat').value = lat;
-                                document.getElementById('current_lng').value = lng;
-
-
-                                var locPosition = new daum.maps.LatLng(lat, lng), // 마커가 표시될 위치를 geolocation으로 얻어온 좌표로 생성합니다
-                                    message = '<div style="padding:5px;">지금 여기!!</div>'; // 인포윈도우에 표시될 내용입니다
-                                
-                                // 마커와 인포윈도우를 표시합니다
-                                displayMarker(locPosition, message);
-                                    
-                              });
-                              
-                                
-                        } else { // HTML5의 GeoLocation을 사용할 수 없을때 마커 표시 위치와 인포윈도우 내용을 설정합니다
-                            
-                            var locPosition = new daum.maps.LatLng(36.3504119, 127.38454750000005),    
-                                message = '현재 좌표를 사용할수 없어요..'
-                                
-                            displayMarker(locPosition, message);
-                        }
-
-                        // 지도에 마커와 인포윈도우를 표시하는 함수입니다
-                        function displayMarker(locPosition, message) {
-
-                            var imageSrc = '{% static "img/flag_red.png" %}', // 마커이미지의 주소입니다    
-                            imageSize = new daum.maps.Size(50, 50), // 마커이미지의 크기입니다
-                            imageOption = {offset: new daum.maps.Point(50, 50)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
-                            var markerImage = new daum.maps.MarkerImage(imageSrc, imageSize, imageOption);
-                            
-
-                            // 마커를 생성합니다
-                            var marker = new daum.maps.Marker({  
-                                map: map, 
-                                position: locPosition,
-                                image : markerImage
-                            }); 
-                            
-                            var iwContent = message, // 인포윈도우에 표시할 내용
-                                iwRemoveable = true;
-
-                            // 인포윈도우를 생성합니다
-                            var infowindow = new daum.maps.InfoWindow({
-                                content : iwContent,
-                                removable : iwRemoveable
-                            });
-                            
-                            // 인포윈도우를 마커위에 표시합니다 
-                            infowindow.open(map, marker);
-                            
-                            // 지도 중심좌표를 접속위치로 변경합니다
-                            map.setCenter(locPosition);      
-                        }    
-
-                        marker.setMap(map);
-                        // 아래 코드는 지도 위의 마커를 제거하는 코드입니다
-                        // marker.setMap(null); 
-
-                    </script>
-                </div>
+                <!-- 현재 위치의 경도 위도 -->
+                <!--<h4>current geolocation</h4>-->
+                <!--<input type="text" id="current_lat" ></input>-->
+                <!--<input type="text" id="current_lng" ></input>-->
 
             </div>
 
+            <div class="col-md-8 col-sm-8">
+                <br />
+                <br />
+                <div id="map" style="width:800px;height:600px;"></div>
+                <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=86db8f0337a4f5a7fa182ccd0a9e67f6"></script>
 
+                <script>
+                    var mapContainer = document.getElementById('map'), // 지도를 표시할 div
+                        mapOption = {
+                            center: new daum.maps.LatLng(36.3504119, 127.38454750000005), // 지도의 중심좌표
+                            level: 2 // 지도의 확대 레벨
+                        };
+
+                    var map = new daum.maps.Map(mapContainer, mapOption); // 지도를 생성합니다
+
+                    // 마커를 표시할 위치와 title 객체 배열입니다
+
+                    var positions = [];
+                    {% for row in locations %}
+                    positions.push({
+                        title: "{{row.restaurant_name}}" ,
+                        latlng: new daum.maps.LatLng({{row.restaurant_latitude}}, {{row.restaurant_longitude}})
+                    })
+                    {% endfor %}
+
+                    // 마커 이미지의 이미지 주소입니다
+
+                    var imageSrc = '{% static "img/flag_visited.png" %}', // 마커이미지의 주소입니다
+//                    var imageSrc = 'https://upload.wikimedia.org/wikipedia/en/f/ff/SFA_Athletics_logo.png',
+                        imageSize = new daum.maps.Size(30, 30), // 마커이미지의 크기입니다
+                        imageOption = {offset: new daum.maps.Point(40, 40)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
+
+                    for (var i = 0; i < positions.length; i ++) {
+
+
+                        // 마커 이미지를 생성합니다
+                        var markerImage = new daum.maps.MarkerImage(imageSrc, imageSize, imageOption);
+
+                        // 마커를 생성합니다
+                        var marker = new daum.maps.Marker({
+                            map: map, // 마커를 표시할 지도
+                            position: positions[i].latlng, // 마커를 표시할 위치
+                            title : positions[i].title, // 마커의 타이틀, 마커에 마우스를 올리면 타이틀이 표시됩니다
+                            image : markerImage // 마커 이미지
+                        });
+                    }
+
+                    // 현재위치 표시
+                    if (navigator.geolocation) {
+
+                        // GeoLocation을 이용해서 접속 위치를 얻어옵니다
+                        navigator.geolocation.getCurrentPosition(function(position) {
+
+                            lat = position.coords.latitude, // 위도
+                                lng = position.coords.longitude; // 경도
+
+                            document.getElementById('current_lat').value = lat;
+                            document.getElementById('current_lng').value = lng;
+
+
+                            var locPosition = new daum.maps.LatLng(lat, lng), // 마커가 표시될 위치를 geolocation으로 얻어온 좌표로 생성합니다
+                                message = '<div style="padding:5px;">지금 여기!!</div>'; // 인포윈도우에 표시될 내용입니다
+
+                            // 마커와 인포윈도우를 표시합니다
+                            displayMarker(locPosition, message);
+
+                        });
+
+
+                    } else { // HTML5의 GeoLocation을 사용할 수 없을때 마커 표시 위치와 인포윈도우 내용을 설정합니다
+
+                        var locPosition = new daum.maps.LatLng(36.3504119, 127.38454750000005),
+                            message = '현재 좌표를 사용할수 없어요..'
+
+                        displayMarker(locPosition, message);
+                    }
+
+                    // 지도에 마커와 인포윈도우를 표시하는 함수입니다
+                    function displayMarker(locPosition, message) {
+
+                        var imageSrc = '{% static "img/flag_red.png" %}', // 마커이미지의 주소입니다
+                            imageSize = new daum.maps.Size(50, 50), // 마커이미지의 크기입니다
+                            imageOption = {offset: new daum.maps.Point(50, 50)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
+                        var markerImage = new daum.maps.MarkerImage(imageSrc, imageSize, imageOption);
+
+
+                        // 마커를 생성합니다
+                        var marker = new daum.maps.Marker({
+                            map: map,
+                            position: locPosition,
+                            image : markerImage
+                        });
+
+                        var iwContent = message, // 인포윈도우에 표시할 내용
+                            iwRemoveable = true;
+
+                        // 인포윈도우를 생성합니다
+                        var infowindow = new daum.maps.InfoWindow({
+                            content : iwContent,
+                            removable : iwRemoveable
+                        });
+
+                        // 인포윈도우를 마커위에 표시합니다
+                        infowindow.open(map, marker);
+
+                        // 지도 중심좌표를 접속위치로 변경합니다
+                        map.setCenter(locPosition);
+                    }
+
+                    marker.setMap(map);
+                    // 아래 코드는 지도 위의 마커를 제거하는 코드입니다
+                    // marker.setMap(null);
+
+                </script>
+                <br>
+                <div>Icons made by <a href="https://www.flaticon.com/authors/madebyoliver" title="Madebyoliver">Madebyoliver</a> from <a href="https://www.flaticon.com/" title="Flaticon" class="text-muted">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+            </div>
         </div>
     </div>
+</section>
 {% endblock %}
