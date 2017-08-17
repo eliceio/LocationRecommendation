@@ -103,135 +103,27 @@ I = len(df_train['Restaurant ID'].unique())
 
 print("User: %d, Location: %d" %(N, I))
 
-beta = float(input("Enter the beta value:")) #
-Z = int(input("Enter the number of topic:")) #
-
-# number of recommended place
-max_recommend_num = int(input("Enter the maximum number of place:"))
 
 
-sys1 = TopicModel(df_train, beta, Z, N, I) #####################
-
-# pdb.set_trace()
-
-# training
-beta, psi = sys1.trainParams(100) # 위 예제는 iteration 30에 학습 끝남.
-
-## 최종 코드:
-# [[0, 1],
-#  [1, 0],
-#  [0.5, 0.5]]
-# [[-6, 6], [5, -5]]
-
-## 바꾼 코드:
-# [[0.012, 0.987],
-#  [0.989, 0.010],
-#  [0.174, 0.825]]
-# [[-13, 13],[5, -5]]
-
-## 원래 코드 :
-# [[3.27e-06, 9.99e-01],
-#  [8.75e-02, 9.12e-01],
-#  [1.10e-04, 9.99e-01]]
-# [[-8, 8],[5,-5]]
-
-#print(psi)
-# pdb.set_trace() #-1
-
-## accuracy 측정
-# user의 log 위치들의 중간 점에서, 추천을 하고, 그 가게가 추천한 것의 5개 안에 들어가는지로 판단
-
-## input test data
-## 새로운 장소에 해당 
-# current_location = input("Enter the current space:")
-# current_coordinate = sys1.get_location(current_location)
-
-# 여기서 만들어진 code를 바꾸지 말고, test갯수만큼 for문을 통해 추천??
-
-
+# MRR
 
 test_data = df_test['Restaurant Name'].tolist()
 
-accuracy = 0
-test_result = []
+list_mrr = []
 
-# random accuracy mean list
-rand_acc_mean = []
-
-# random accuracy list
-list_np_accuracy = []
-
-for recommend_num in range(1, max_recommend_num + 1):
-
-    print("recommend_num: ", recommend_num)
+for user_idx, current_coordinate in enumerate(current_location_test):
     
-    list_accuracy = []
+    res_idx = df[df['Restaurant Name'] == test_data[user_idx]].index
 
-    for i in range(0, 10):
-        accuracy = 0
+    list_res_idx = res_idx.values.tolist()
+    list_res_idx = np.array(list_res_idx)
+    list_res_idx = 1.0 / (list_res_idx+1)
+ 
 
-        for user_idx, current_coordinate in enumerate(current_location_test):
-
-            recommend_prob = sys1.test(current_coordinate, psi, beta)
-       
-            # baseline_random
-            recommendation = sys1.find_recommendation_random(num=recommend_num)
-
-            test_result.append(recommendation[user_idx]) # N * num
-
-            # pdb.set_trace()
-            if test_data[user_idx] in recommendation[user_idx]:
-                accuracy += 1 
-        
-        list_accuracy.append(accuracy)      
-        
-
-    # accuracy = accuracy/len(test_data)*100
-    # print("accuracy is %f" %accuracy)
-
-    np_accuracy = np.array(list_accuracy)
-    np_accuracy = np_accuracy/len(test_data)*100
-    # for item in np_accuracy:
-        # print("accuracy is %f" %item)
-
-    list_np_accuracy.append(np_accuracy)
-
-    print("mean: %f" % np.mean(np_accuracy))
-    rand_acc_mean.append(np.mean(np_accuracy))
+    mrr = np.sum(list_res_idx) / len(list_res_idx)
+    list_mrr.append(mrr)
 
 
-print(rand_acc_mean)
-#print(list_np_accuracy)
+# mean MRR
+print(np.mean(list_mrr))
 
-# create dataframe
-df_rand_acc_mean = pd.DataFrame(rand_acc_mean, columns = ['mean'])
-df_list_np_acc = pd.DataFrame(list_np_accuracy)
-df_rand_base = pd.concat([df_list_np_acc, df_rand_acc_mean], axis=1)
-df_rand_base.to_csv('base_random.csv',index=False, header=True, sep='\t')
-
-
-# np.save('psi_5_topic8', psi) # 5,5,10,8
-# np.save('recommendation', np.array(recommendation))
-
-#pdb.set_trace() 
-
-
-
-
-## 현재 위치의 주소를 입력받아, 모든 user에게 추천
-# # test
-# recommend_prob = sys1.test(current_coordinate, psi, beta)
-
-# # print result
-# recommendation = sys1.find_recommendation(recommend_prob)
-# print(recommendation)
-
-
-### change the file name loaded 
-
-### Daejeon_dataset_t.csv
-# Comment, Member ID, Member Nickname, Rating, Restaurant Address, Restuarant ID 
-# Restaurant Latitude, Restaurant Longitude, Restaurant Nme, Restaurant code, 
-# Restaurant subcode, Time  
-
-### beta, Z optimization 

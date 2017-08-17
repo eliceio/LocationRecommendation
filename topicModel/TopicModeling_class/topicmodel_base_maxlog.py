@@ -158,32 +158,31 @@ test_result = []
 # random accuracy mean list
 rand_acc_mean = []
 
-# random accuracy list
-list_np_accuracy = []
+list_accuracy = []
+
 
 for recommend_num in range(1, max_recommend_num + 1):
 
-    print("recommend_num: ", recommend_num)
-    
-    list_accuracy = []
+    # # random accuracy list
+    # list_accuracy = []
 
-    for i in range(0, 10):
-        accuracy = 0
+    # for i in range(0, 10):
+    accuracy = 0
 
-        for user_idx, current_coordinate in enumerate(current_location_test):
+    for user_idx, current_coordinate in enumerate(current_location_test):
 
-            recommend_prob = sys1.test(current_coordinate, psi, beta)
+        recommend_prob = sys1.test(current_coordinate, psi, beta)
        
-            # baseline_random
-            recommendation = sys1.find_recommendation_random(num=recommend_num)
+        # baseline_random
+        recommendation = sys1.find_recommendation_max(num=recommend_num)
 
-            test_result.append(recommendation[user_idx]) # N * num
+        test_result.append(recommendation[user_idx]) # N * num
 
-            # pdb.set_trace()
-            if test_data[user_idx] in recommendation[user_idx]:
-                accuracy += 1 
+        #pdb.set_trace()
+        if test_data[user_idx] in recommendation[user_idx]:
+            accuracy += 1 
         
-        list_accuracy.append(accuracy)      
+    list_accuracy.append(accuracy)      
         
 
     # accuracy = accuracy/len(test_data)*100
@@ -191,23 +190,21 @@ for recommend_num in range(1, max_recommend_num + 1):
 
     np_accuracy = np.array(list_accuracy)
     np_accuracy = np_accuracy/len(test_data)*100
-    # for item in np_accuracy:
-        # print("accuracy is %f" %item)
 
-    list_np_accuracy.append(np_accuracy)
+    # list_np_accuracy.append(np_accuracy)
 
-    print("mean: %f" % np.mean(np_accuracy))
-    rand_acc_mean.append(np.mean(np_accuracy))
+    # print("mean: %f" % np.mean(np_accuracy))
+    # rand_acc_mean.append(np.mean(np_accuracy))
 
 
-print(rand_acc_mean)
-#print(list_np_accuracy)
+# print(rand_acc_mean)
+print(np_accuracy)
 
 # create dataframe
-df_rand_acc_mean = pd.DataFrame(rand_acc_mean, columns = ['mean'])
-df_list_np_acc = pd.DataFrame(list_np_accuracy)
-df_rand_base = pd.concat([df_list_np_acc, df_rand_acc_mean], axis=1)
-df_rand_base.to_csv('base_random.csv',index=False, header=True, sep='\t')
+#df_rand_acc_mean = pd.DataFrame(rand_acc_mean, columns = ['mean'])
+df_np_acc = pd.DataFrame(np_accuracy)
+#df_rand_base = pd.concat([df_list_np_acc, df_rand_acc_mean], axis=1)
+df_np_acc.to_csv('base_max_log.csv',index=False, header=True, sep='\t')
 
 
 # np.save('psi_5_topic8', psi) # 5,5,10,8
