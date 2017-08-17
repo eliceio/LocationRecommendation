@@ -4,39 +4,23 @@
 
 {% block content %}
 
-<header>
-    <div class="container">
-        <div class="intro-text">
-             <div class="intro-lead-in">Welcome To Our Studio!</div>
-            <div class="intro-heading">{{locations.0.member_nickname}}, {{locations.0}}</div>
-        </div>
+{% include 'blog/__navbar_member.html' %}
+
+<header style="background-image: url('{% static "img/header-bg4.jpg"%}')">
+<div class="container">
+    <div class="intro-text">
+        <div class="intro-lead-in">Welcome To Our Studio!</div>
+        <div class="intro-heading">{{locations.0.member_nickname}}, {{locations.0}}</div>
     </div>
+</div>
 </header>
 
 <section class="bg-light-gray">
     <div class="container">
-        <!-- 현재 위치 찾기  -->
         <div class="row" >
-            <div class="col-md-4 col-sm-4">
-                <p>
-                    <h2>Visited Restaurant</h2>
-                    {% for user in locations %}
-                <!--<li>{{user.restaurant_id}},  {{user.restaurant_name}},  {{user.restaurant_address}}</li>-->
-                <li>{{user.restaurant_name}},  {{user.restaurant_address}}</li>
-                {% endfor %}
-                </p>
-
-                <!-- 현재 위치의 경도 위도 -->
-                <!--<h4>current geolocation</h4>-->
-                <!--<input type="text" id="current_lat" ></input>-->
-                <!--<input type="text" id="current_lng" ></input>-->
-
-            </div>
-
-            <div class="col-md-8 col-sm-8">
-                <br />
-                <br />
-                <div id="map" style="width:800px;height:600px;"></div>
+            <div class="col-md-12 col-sm-12 text-center">
+                <h2 class="section-heading">MAP</h2>
+                <div id="map" style="width:1150px;height:600px;"></div>
                 <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=86db8f0337a4f5a7fa182ccd0a9e67f6"></script>
 
                 <script>
@@ -147,8 +131,32 @@
                     // marker.setMap(null);
 
                 </script>
-                <br>
-                <div>Icons made by <a href="https://www.flaticon.com/authors/madebyoliver" title="Madebyoliver">Madebyoliver</a> from <a href="https://www.flaticon.com/" title="Flaticon" class="text-muted">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+                <div class="text-right">Icons made by <a href="https://www.flaticon.com/authors/madebyoliver" title="Madebyoliver">Madebyoliver</a> from <a href="https://www.flaticon.com/" title="Flaticon" class="text-muted">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+            </div>
+        </div>
+        <br><br>
+        <div class="row">
+            <div class="col-md-6 col-sm-6 text-center">
+                <p>
+                <h2>Visited Restaurant</h2>
+                {% for user in locations %}
+                <!--<li>{{user.restaurant_id}},  {{user.restaurant_name}},  {{user.restaurant_address}}</li>-->
+                <li>{{user.restaurant_name}},  {{user.restaurant_address}}</li>
+                {% endfor %}
+                </p>
+
+                <!-- 현재 위치의 경도 위도 -->
+                <!--<h4>current geolocation</h4>-->
+                <!--<input type="text" id="current_lat" ></input>-->
+                <!--<input type="text" id="current_lng" ></input>-->
+
+            </div>
+            <div class="col-md-6 col-sm-6 text-center">
+                <p>
+                <h2>Recommned Restaurant</h2>
+
+                </p>
+
             </div>
         </div>
     </div>
