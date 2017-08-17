@@ -26,8 +26,9 @@ def load_data():
 def cut_data(df, log_min, log_max):
     '''
     log_min, log_max에 맞추어 data 자르기
-    잘라서, 축소된 df형태로 만드는 것이 목표
+    잘라서, 축소된 df형태로 만드는 것이 목표 
     '''
+    # pdb.set_trace()
     df_user = df[['Member ID', 'Restaurant ID']]
     df_user = df_user.sort_values('Member ID')
     
@@ -49,22 +50,33 @@ def cut_data(df, log_min, log_max):
 
     idx_min = [idx for idx, item in enumerate(user_log_num) if item[1]>=log_min]
     idx_max = [idx for idx, item in enumerate(user_log_num) if item[1]>=log_max+1]
-    user_log_num = user_log_num[idx_min[0]:idx_max[0]-1] # user index has to start from 1
+
+    # pdb.set_trace()
+    if idx_max == []: # idx_max가 []라는 이유는, 가지고 있는 데이터에 log_max보다 더 큰 log를 가지는 애가 없다는 말
+        user_log_num = user_log_num[idx_min[0]:idx_min[-1]+1] # +1은 list의 slicing
+    else:
+        user_log_num = user_log_num[idx_min[0]:idx_max[0]] # user index has to start from 1
                                                          # [(user index, # of logs)]
     user_log_num = [list(x) for x in user_log_num]
     user_log_num = np.array(user_log_num)
 
     user_log_index = user_log_num[:,0] # 여기 있는 number들을 'Member ID'로 하는 값만 추리기
-    
+    user_log_index = sorted(user_log_index)
+
+    # pdb.set_trace()
     cut_index = []
     training_data = []
-    for mem_id in user_log_index.tolist():
+    for mem_id in user_log_index: #.tolist():
         temp = df[df['Member ID']==mem_id]
         cut_index += temp.index.tolist()
         training_data.append(temp['Restaurant Name'].tolist())
 
+    df_cut = df.loc[cut_index]
+    df_cut = df_cut.sort_values('Member ID')
+
     # pdb.set_trace()
-    return user_log_index, df.loc[cut_index], training_data # training_data는 확인용
+    return user_log_index, df_cut, training_data # training_data는 확인용
+
 
 def separate_data(user_index, df):
    # pdb.set_trace()
@@ -103,17 +115,38 @@ I = len(df_train['Restaurant ID'].unique())
 
 print("User: %d, Location: %d" %(N, I))
 
+# beta = float(input("Enter the beta value:")) #
+# Z = int(input("Enter the number of topic:")) #
+
+# number of recommended place
+# max_recommend_num = int(input("Enter the maximum number of place:"))
+
+
+# sys1 = TopicModel(df_train, beta, Z, N, I) #####################
+
+# pdb.set_trace()
+
+# training
+# beta, psi = sys1.trainParams(100) # 위 예제는 iteration 30에 학습 끝남.
+
 
 
 # MRR
-
 test_data = df_test['Restaurant Name'].tolist()
 
 list_mrr = []
 
 for user_idx, current_coordinate in enumerate(current_location_test):
     
-    res_idx = df[df['Restaurant Name'] == test_data[user_idx]].index
+    # random 
+    df_rand = df_train.sample(frac=1.0)
+    res_idx = df_rand[df_rand['Restaurant Name'] == test_data[user_idx]].index
+
+    # maxlog
+    # df_maxlog = df
+    # res_idx = df_maxlog[df_rand['Restaurant Name'] == test_data[user_idx]].index
+
+    # res_idx = df_[df['Restaurant Name'] == test_data[user_idx]].index
 
     list_res_idx = res_idx.values.tolist()
     list_res_idx = np.array(list_res_idx)
