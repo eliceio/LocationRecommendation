@@ -1,9 +1,8 @@
 from topicmodel_class_fix import TopicModel
 import pandas as pd
-import numpy as np # toy_data
+import numpy as np 
 import operator
-
-
+import matplotlib.pyplot as plt
 
 import pdb
 
@@ -105,6 +104,7 @@ def separate_data(user_index, df):
 #########
 # Train #
 #########
+print('Topic modeling with mangoplate data')
 
 df = load_data()
 print("Complete load data")
@@ -116,8 +116,6 @@ print("Complete rearrange data")
 
 df_train, df_test, current_location_test = separate_data(user_log_index, df_cut)
 
-# pdb.set_trace()
-
 N = len(df_train['Member ID'].unique())
 I = len(df_train['Restaurant ID'].unique())
 
@@ -126,38 +124,31 @@ print("User: %d, Location: %d" %(N, I))
 beta = float(input("Enter the beta value:")) #
 Z = int(input("Enter the number of topic:")) #
 
+maxiter = int(input("Enter the number of maxiter:"))
+
 sys1 = TopicModel(df_train, df_test, beta, Z, N, I) # df_test는 test에 들어가는 log를 training에서 배제하기 위함
 
-# pdb.set_trace()
+print('\n')
+print('Start parameter training: press "c"')
+print('\n')
+pdb.set_trace()
 
-beta, psi = sys1.trainParams(maxiter = 100)
-print("***************************")
-print('Complete parameter training')
+beta, psi = sys1.trainParams(maxiter = maxiter)
+print('*********************************************************************')
+print('***********************Training Complete*****************************')
+print('*********************************************************************')
 
-# pdb.set_trace()
+print('\n')
+print('Go to Test: press "c"')
+# print('Save psi: np.save(\'psi\', psi)')
+# print('Or quit: press "q"')
+print('\n')
+pdb.set_trace()
 
-## 최종 코드:
-# [[0, 1],
-#  [1, 0],
-#  [0.5, 0.5]]
-# [[-6, 6], [5, -5]]
 
-## 바꾼 코드:
-# [[0.012, 0.987],
-#  [0.989, 0.010],
-#  [0.174, 0.825]]
-# [[-13, 13],[5, -5]]
-
-## 원래 코드 :
-# [[3.27e-06, 9.99e-01],
-#  [8.75e-02, 9.12e-01],
-#  [1.10e-04, 9.99e-01]]
-# [[-8, 8],[5,-5]]
-
-print(psi)
-np.save('psi_toy7_10', psi) 
-# pdb.set_trace() #-1
-
+#########
+# Test ##
+#########
 ## accuracy 측정
 # user의 log 위치들의 중간 점에서, 추천을 하고, 그 가게가 추천한 것의 5개 안에 들어가는지로 판단
 
@@ -166,31 +157,89 @@ np.save('psi_toy7_10', psi)
 # current_location = input("Enter the current space:")
 # current_coordinate = sys1.get_location(current_location)
 
-# 여기서 만들어진 code를 바꾸지 말고, test갯수만큼 for문을 통해 추천??
-print('stop')
-pdb.set_trace()
+test_data = df_test['Restaurant Name'].tolist() # 얘랑 맞아야 하는 것임 
 
-test_data = df_test['Restaurant Name'].tolist()
+## 각 방법 별 추천 (Random, Max, GeoTopic)
+# 한번에 모든 장소에 대해 갈 확률로 추천을 받아서, precision@N과 MRR을 계산
+recommend_geo = [] # N * num_recommend
+recommend_ran = [] # N * num_recommend
+recommend_max = [] # N * num_recommend
 
-accuracy = 0
-test_result = []
+num_recommend = I
+
+## random
+location = df_train['Restaurant Name'].unique().tolist() # np.array
+# # 어차피 랜덤하게 sorting 할 것이므로, 여기서 sort 필요 없음!
+
+## max
+max_location_idx = df_train['Restaurant ID'].value_counts().index.tolist() 
+max_location = []
+for idx in max_location_idx:
+	temp = df_train[df_train['Restaurant ID']==idx]['Restaurant Name'].tolist()
+	max_location.append(temp[0])
+# 충격! 'Restaurant ID'랑 'Restaurant Name'이랑 unique 갯수가 다름! 근데 training할때는 ID사용 
+
 for user_idx, current_coordinate in enumerate(current_location_test):
-	# pdb.set_trace()
+	print('recommend || user %d' %(user_idx+1))
 	recommend_prob = sys1.test(current_coordinate, psi, beta)
-	recommendation = sys1.find_recommendation2(recommend_prob, num=I)
-	test_result.append(recommendation[user_idx]) # N * num
+	recommendation = sys1.find_recommendation2(recommend_prob, num=num_recommend)
+	recommend_geo.append(recommendation[user_idx])
 
-	if test_data[user_idx] in recommendation[user_idx]:
-		accuracy += 1
+	# recommendation = sys1.find_recommendation_random(num=num_recommend)
+	# recommend_ran.append(recommendation)
+	recommend_ran.append(np.random.permutation(location).tolist())
 
-accuracy = accuracy/len(test_data)*100
-print("accuracy is %f" %accuracy)
+	recommend_max.append(max_location)
 
-# np.save('psi_5_topic8', psi) # 5,5,10,8
-np.save('recommendation', np.array(recommendation))
+##### Measure 
+print('*********************************************************************')
+print('****************************Results**********************************')
+print('*********************************************************************')
 
+recommend = np.array(recommend_geo) # GEO TOPIC에서 가져온 recommendation
+pre_at_N_geo = sys1.pre_at_N(recommend, test_data)
+MRR_geo = sys1.MRR(recommend, test_data)
+
+recommend = np.array(recommend_ran) # RANDOM에서 가져온 recommendation
+pre_at_N_ran = sys1.pre_at_N(recommend, test_data)
+MRR_ran = sys1.MRR(recommend, test_data)
+
+recommend = np.array(recommend_max) # MAX LOG에서 가져온 recommendation
+pre_at_N_max = sys1.pre_at_N(recommend, test_data)
+MRR_max = sys1.MRR(recommend, test_data)
+
+print('MRR')
+print('Geotopic:%f' %MRR_geo)
+print('Random  :%f' %MRR_ran)
+print('Maxlog  :%f' %MRR_max)
+
+print('Precision@n Graph')
+plot_x = range(1, len(pre_at_N_geo)+1)
+# plt.plot(pre_at_N_geo, label='GEO')
+# plt.plot(pre_at_N_ran, label='RAN')
+# plt.plot(pre_at_N_max, label='MAX')
+plt.plot(plot_x, pre_at_N_geo, 'g--', plot_x, pre_at_N_ran, 'r--', plot_x, pre_at_N_max, 'b--')
+plt.xlabel('N')
+plt.ylabel('Precision@N')
+plt.show()
+
+# Topic extraciton
+print('*********************************************************************')
+print('****************************TOPIC__**********************************')
+print('*********************************************************************')
+topic_info, topic_info_sub = sys1.topic_extraction()
+print('If you want to check topic_information, press c')
+print('Or press anything except c')
+topic_info_button = input()
+if topic_info_button == 'c':
+	print(np.array(topic_info))
+	print(np.array(topic_info_sub))
+
+
+print('\n')
+print('To exit, press c')
+print('Or you can check some variables, ...')
 pdb.set_trace()
-
 
 
 
@@ -211,3 +260,78 @@ pdb.set_trace()
 # Restaurant subcode, Time  
 
 ### beta, Z optimization 
+
+
+## 최종 코드:
+# [[0, 1],
+#  [1, 0],
+#  [0.5, 0.5]]
+# [[-6, 6], [5, -5]]
+
+## 바꾼 코드:
+# [[0.012, 0.987],
+#  [0.989, 0.010],
+#  [0.174, 0.825]]
+# [[-13, 13],[5, -5]]
+
+## 원래 코드 :
+# [[3.27e-06, 9.99e-01],
+#  [8.75e-02, 9.12e-01],
+#  [1.10e-04, 9.99e-01]]
+# [[-8, 8],[5,-5]]
+
+########################################################################
+## precision@5 계산 코드 
+# 어차피, I개의 장소에 대해 갈 확률로 계산을 하니까, 
+# 한번에 다 I개까지 계산을 해서, precision@N 이랑 MRR을 계산
+# accuracy = 0
+# test_result = []
+
+# for user_idx, current_coordinate in enumerate(current_location_test):
+	# recommend_prob = sys1.test(current_coordinate, psi, beta)
+	# recommendation = sys1.find_recommendation2(recommend_prob, num=5)
+	# test_result.append(recommendation[user_idx]) # N * num
+
+	# if test_data[user_idx] in recommendation[user_idx]:
+		# accuracy += 1
+
+# accuracy = accuracy/len(test_data)*100
+# print("accuracy is %f" %accuracy) # 지금 location 전체를 다 추천에 사용하고 있으므로, 100이 나와야 정상
+
+########################################################################
+
+# ## Measure
+# def pre_at_N(recommend, test_data, I, N): # recommend는 numpy
+# 	# recommend에서 i+1개씩 추천해서 accuracy 측정
+# 	pre_at_N = []
+# 	for i in range(I):
+# 		recommend_at_N = recommend[:,0:(i+1)] # N * (i+1)
+
+# 		accuracy = 0
+# 		for n in range(N):
+# 			if test_data[n] in recommend_at_N[n]:
+# 				accuracy += 1
+# 		accuracy = accuracy/N*100
+
+# 		pre_at_N.append(accuracy)	
+# 	return pre_at_N
+
+# def MRR(recommend, test_data, N): # recommend는 numpy
+# 	MRR = 0
+# 	for n in range(N):
+# 		t_recommend = recommend.tolist()
+# 		mrr_index = t_recommend[n].index(test_data[n])+1
+# 		print(mrr_index)
+# 		MRR += 1/mrr_index
+# 		MRR = MRR/N # 0.0366547
+# 	return MRR
+
+## Random 
+# location = df_train['Restaurant Name'].unique().tolist() # np.array
+# # 어차피 랜덤하게 sorting 할 것이므로, 여기서 sort 필요 없음!
+
+# recommend = []
+# for n in range(N):
+# 	# np.random.shuffle(location) # deep copy ~하는 문제 발생
+# 	recommend.append(np.random.permutation(location).tolist())
+# recommend = np.array(recommend)
