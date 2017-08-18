@@ -521,16 +521,27 @@ class TopicModel():
 
                 return recommendation
 
-        def find_recommendation_max(self, num):
+        def find_recommendation_max(self, num, idx_list):
+                df = self.df
                 recommendation = []
+                new_log_cnt = []
+                for r_id in idx_list:
+                    try:
+                        df_restaurant_name = df.loc[df['Restaurant ID'] == r_id, 'Restaurant Name'].iloc[0]
+                        new_log_cnt.append(df_restaurant_name)
+                    except IndexError:
+                        pass
 
                 for i in range(0, self.N):
-                    log_cnt = self.df['Restaurant Name'].value_counts()
-                    log_cnt = log_cnt.index.tolist()
-
-                    # Take the first n items from log_cnt(n = num)
-                    top_log = log_cnt[:num]
+                    top_log = new_log_cnt[:num]
                     recommendation.append(top_log)
+                # for i in range(0, self.N):
+                #     log_cnt = self.df['Restaurant Name'].value_counts()
+                #     log_cnt = log_cnt.index.tolist()
+
+                #     # Take the first n items from log_cnt(n = num)
+                #     top_log = log_cnt[:num]
+                #     recommendation.append(top_log)
 
                 return recommendation
 
