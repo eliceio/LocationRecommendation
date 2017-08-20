@@ -134,29 +134,41 @@ print("User: %d, Location: %d" %(N, I))
 # MRR
 test_data = df_test['Restaurant Name'].tolist()
 
-list_mrr = []
+list_rand_mrr = []
+list_maxlog_mrr = []
+
+def mrr(res_idx):
+    res_idx = res_idx.values.tolist()
+    res_idx = np.array(res_idx)
+    res_idx = 1.0 / (res_idx+1)
+    mrr = np.sum(res_idx) / len(res_idx)
+    return mrr
 
 for user_idx, current_coordinate in enumerate(current_location_test):
     
-    # random 
+    # #random 
     df_rand = df_train.sample(frac=1.0)
-    res_idx = df_rand[df_rand['Restaurant Name'] == test_data[user_idx]].index
+    df_rand = df_rand.reset_index(drop=True)
+    rand_idx = df_rand[df_rand['Restaurant Name'] == test_data[user_idx]].index
+    list_rand_mrr.append(mrr(rand_idx))
 
-    # maxlog
-    # df_maxlog = df
-    # res_idx = df_maxlog[df_rand['Restaurant Name'] == test_data[user_idx]].index
+    # #maxlog
+    df_maxlog = df_train.ix[df_train.groupby('Restaurant Name')[['Restaurant Name']].transform(len).sort_values('Restaurant Name', ascending=[0]).index]
+    df_maxlog = df_maxlog.reset_index(drop=True)
+    maxlog_idx = df_maxlog[df_maxlog['Restaurant Name'] == test_data[user_idx]].index
+    list_maxlog_mrr.append(mrr(maxlog_idx))
 
-    # res_idx = df_[df['Restaurant Name'] == test_data[user_idx]].index
-
-    list_res_idx = res_idx.values.tolist()
-    list_res_idx = np.array(list_res_idx)
-    list_res_idx = 1.0 / (list_res_idx+1)
- 
-
-    mrr = np.sum(list_res_idx) / len(list_res_idx)
-    list_mrr.append(mrr)
-
+    #pdb.set_trace()
 
 # mean MRR
-print(np.mean(list_mrr))
+
+print("-----random mrr-----")
+print(list_rand_mrr)
+print("mrr:",np.mean(list_rand_mrr))
+
+
+print("-----maxlog mrr-----")
+print(list_maxlog_mrr)
+print("mrr:",np.mean(list_maxlog_mrr))
+
 

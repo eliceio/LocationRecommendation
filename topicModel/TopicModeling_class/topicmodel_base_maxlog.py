@@ -26,8 +26,9 @@ def load_data():
 def cut_data(df, log_min, log_max):
     '''
     log_min, log_max에 맞추어 data 자르기
-    잘라서, 축소된 df형태로 만드는 것이 목표
+    잘라서, 축소된 df형태로 만드는 것이 목표 
     '''
+    # pdb.set_trace()
     df_user = df[['Member ID', 'Restaurant ID']]
     df_user = df_user.sort_values('Member ID')
     
@@ -49,22 +50,34 @@ def cut_data(df, log_min, log_max):
 
     idx_min = [idx for idx, item in enumerate(user_log_num) if item[1]>=log_min]
     idx_max = [idx for idx, item in enumerate(user_log_num) if item[1]>=log_max+1]
-    user_log_num = user_log_num[idx_min[0]:idx_max[0]-1] # user index has to start from 1
+
+    # pdb.set_trace()
+    if idx_max == []: # idx_max가 []라는 이유는, 가지고 있는 데이터에 log_max보다 더 큰 log를 가지는 애가 없다는 말
+        user_log_num = user_log_num[idx_min[0]:idx_min[-1]+1] # +1은 list의 slicing
+    else:
+        user_log_num = user_log_num[idx_min[0]:idx_max[0]] # user index has to start from 1
                                                          # [(user index, # of logs)]
     user_log_num = [list(x) for x in user_log_num]
     user_log_num = np.array(user_log_num)
 
     user_log_index = user_log_num[:,0] # 여기 있는 number들을 'Member ID'로 하는 값만 추리기
-    
+    user_log_index = sorted(user_log_index)
+
+    # pdb.set_trace()
     cut_index = []
     training_data = []
-    for mem_id in user_log_index.tolist():
+    for mem_id in user_log_index: #.tolist():
         temp = df[df['Member ID']==mem_id]
         cut_index += temp.index.tolist()
         training_data.append(temp['Restaurant Name'].tolist())
 
+    df_cut = df.loc[cut_index]
+    df_cut = df_cut.sort_values('Member ID')
+
     # pdb.set_trace()
-    return user_log_index, df.loc[cut_index], training_data # training_data는 확인용
+    return user_log_index, df_cut, training_data # training_data는 확인용
+
+
 
 def separate_data(user_index, df):
    # pdb.set_trace()
@@ -169,16 +182,18 @@ for recommend_num in range(1, max_recommend_num + 1):
     # for i in range(0, 10):
     accuracy = 0
 
+    log_cnt = df['Restaurant ID'].value_counts()
+    log_cnt = log_cnt.index.tolist()
+    
     for user_idx, current_coordinate in enumerate(current_location_test):
-
-        recommend_prob = sys1.test(current_coordinate, psi, beta)
-       
-        # baseline_random
-        recommendation = sys1.find_recommendation_max(num=recommend_num)
+        # baseline_maxlog
+        recommendation = sys1.find_recommendation_max(num=recommend_num,idx_list=log_cnt)
 
         test_result.append(recommendation[user_idx]) # N * num
 
-        #pdb.set_trace()
+        #if recommend_num == max_recommend_num:
+            #pdb.set_trace()
+
         if test_data[user_idx] in recommendation[user_idx]:
             accuracy += 1 
         
@@ -188,21 +203,13 @@ for recommend_num in range(1, max_recommend_num + 1):
     # accuracy = accuracy/len(test_data)*100
     # print("accuracy is %f" %accuracy)
 
-    np_accuracy = np.array(list_accuracy)
-    np_accuracy = np_accuracy/len(test_data)*100
-
-    # list_np_accuracy.append(np_accuracy)
-
-    # print("mean: %f" % np.mean(np_accuracy))
-    # rand_acc_mean.append(np.mean(np_accuracy))
-
-
-# print(rand_acc_mean)
+np_accuracy = np.array(list_accuracy)
+np_accuracy = np_accuracy/len(test_data)*100
 print(np_accuracy)
 
 # create dataframe
 #df_rand_acc_mean = pd.DataFrame(rand_acc_mean, columns = ['mean'])
-df_np_acc = pd.DataFrame(np_accuracy)
+df_np_acc = pd.DataFrame(np_accuracy, columns = ['accuracy'])
 #df_rand_base = pd.concat([df_list_np_acc, df_rand_acc_mean], axis=1)
 df_np_acc.to_csv('base_max_log.csv',index=False, header=True, sep='\t')
 
