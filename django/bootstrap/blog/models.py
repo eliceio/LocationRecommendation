@@ -12,6 +12,7 @@ class Location(models.Model):
 	restaurant_name = models.CharField(max_length=20)
 	restaurant_code = models.IntegerField()
 	restaurant_subcode = models.IntegerField()
+	register_time = models.DateField()
 
 	def __str__(self):
 		#return str(self.member_id) + ":" + str(self.restaurant_id)
