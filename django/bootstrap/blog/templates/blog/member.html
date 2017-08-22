@@ -7,12 +7,11 @@
 {% include 'blog/__navbar_member.html' %}
 
 <header style="background-image: url('{% static "img/header-bg4.jpg"%}')">
-<div class="container">
-    <div class="intro-text">
-        <div class="intro-lead-in">Welcome To Our Studio!</div>
-        <div class="intro-heading">{{locations.0.member_nickname}}, {{locations.0}}</div>
+    <div class="container">
+        <div class="intro-text">
+            <div class="intro-heading">{{locations.0.member_nickname}}</div>
+        </div>
     </div>
-</div>
 </header>
 
 <section class="bg-light-gray">
@@ -27,7 +26,7 @@
                     var mapContainer = document.getElementById('map'), // 지도를 표시할 div
                         mapOption = {
                             center: new daum.maps.LatLng(36.3504119, 127.38454750000005), // 지도의 중심좌표
-                            level: 2 // 지도의 확대 레벨
+                            level: 6 // 지도의 확대 레벨
                         };
 
                     var map = new daum.maps.Map(mapContainer, mapOption); // 지도를 생성합니다
@@ -46,7 +45,7 @@
 
                     var imageSrc = '{% static "img/flag_visited.png" %}', // 마커이미지의 주소입니다
 //                    var imageSrc = 'https://upload.wikimedia.org/wikipedia/en/f/ff/SFA_Athletics_logo.png',
-                        imageSize = new daum.maps.Size(30, 30), // 마커이미지의 크기입니다
+                        imageSize = new daum.maps.Size(40, 40), // 마커이미지의 크기입니다
                         imageOption = {offset: new daum.maps.Point(40, 40)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
 
                     for (var i = 0; i < positions.length; i ++) {
@@ -63,6 +62,37 @@
                             image : markerImage // 마커 이미지
                         });
                     }
+
+                    var positions = [];
+                    {% for row in recommendations %}
+                    positions.push({
+                        title: "{{row.restaurant_name}}" ,
+                        latlng: new daum.maps.LatLng({{row.restaurant_latitude}}, {{row.restaurant_longitude}})
+                    })
+                    {% endfor %}
+
+                    // 마커 이미지의 이미지 주소입니다
+
+                    var imageSrc = '{% static "img/flag_recommend.png" %}', // 마커이미지의 주소입니다
+//                    var imageSrc = 'https://upload.wikimedia.org/wikipedia/en/f/ff/SFA_Athletics_logo.png',
+                        imageSize = new daum.maps.Size(80, 80), // 마커이미지의 크기입니다
+                        imageOption = {offset: new daum.maps.Point(80, 80)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
+
+                    for (var i = 0; i < positions.length; i ++) {
+
+
+                        // 마커 이미지를 생성합니다
+                        var markerImage = new daum.maps.MarkerImage(imageSrc, imageSize, imageOption);
+
+                        // 마커를 생성합니다
+                        var marker = new daum.maps.Marker({
+                            map: map, // 마커를 표시할 지도
+                            position: positions[i].latlng, // 마커를 표시할 위치
+                            title : positions[i].title, // 마커의 타이틀, 마커에 마우스를 올리면 타이틀이 표시됩니다
+                            image : markerImage // 마커 이미지
+                        });
+                    }
+
 
                     // 현재위치 표시
                     if (navigator.geolocation) {
@@ -137,7 +167,7 @@
         <br><br>
         <div class="row">
             <div class="col-md-6 col-sm-6 text-center">
-                <p>
+                <p id="visited">
                 <h2>Visited Restaurant</h2>
                 {% for user in locations %}
                 <!--<li>{{user.restaurant_id}},  {{user.restaurant_name}},  {{user.restaurant_address}}</li>-->
@@ -154,9 +184,30 @@
             <div class="col-md-6 col-sm-6 text-center">
                 <p>
                 <h2>Recommned Restaurant</h2>
-
+                {% for user in recommendations %}
+                <!--<li>{{user.restaurant_id}},  {{user.restaurant_name}},  {{user.restaurant_address}}</li>-->
+                <li>{{user.restaurant_name}}</li>
+                {% endfor %}
+                </p>
                 </p>
 
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12 col-sm-12 text-center">
+                <h2 id="other">Other User</h2>
+                <div class="row text-center" id="keywords"></div>
+                <script>
+                    var words = [
+                    {% for user in users %}
+                    {text: "{{user.member_nickname}}", weight: {{user.num}}, link:'/member/{{user.member_id}}'},
+                    {% endfor %}
+                    ];
+                    $('#keywords').jQCloud(words, {
+                        width: 1100,
+                        height: 350
+                    });
+                </script>
             </div>
         </div>
     </div>

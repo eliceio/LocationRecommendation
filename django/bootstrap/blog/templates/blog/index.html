@@ -9,11 +9,12 @@
 <header>
     <div class="container">
         <div class="intro-text">
-            <!-- <div class="intro-lead-in">Welcome To Our Studio!</div> -->
             <div class="intro-heading">Elice Data Science</div>
         </div>
     </div>
 </header>
+
+
 
 <!-- Services Section -->
 <section id="services">
@@ -21,7 +22,8 @@
         <div class="row">
             <div class="col-lg-12 text-center">
                 <h2 class="section-heading">GeoTopic</h2>
-                <h3 class="section-subheading text-muted">Lorem ipsum dolor sit amet consectetur.</h3>
+                <h3></h3>
+                <!--<h3 class="section-subheading text-muted">Location Recommendation</h3>-->
             </div>
         </div>
         <div class="row text-center">
@@ -31,7 +33,7 @@
                         <i class="fa fa-map-marker fa-stack-1x fa-inverse"></i>
                     </span>
                 <h4 class="service-heading">Location</h4>
-                <p class="text-muted">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Minima maxime quam architecto quo inventore harum ex magni, dicta impedit.</p>
+                <p class="text-muted">Analyze the location log data of multiple users.</p>
             </div>
             <div class="col-md-4">
                     <span class="fa-stack fa-4x">
@@ -39,7 +41,7 @@
                         <i class="fa fa-heart-o fa-stack-1x fa-inverse"></i>
                     </span>
                 <h4 class="service-heading">Interest</h4>
-                <p class="text-muted">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Minima maxime quam architecto quo inventore harum ex magni, dicta impedit.</p>
+                <p class="text-muted">Estimate both the user's interests and activity area.</p>
             </div>
             <div class="col-md-4">
                     <span class="fa-stack fa-4x">
@@ -47,7 +49,7 @@
                         <i class="fa fa-smile-o fa-stack-1x fa-inverse"></i>
                     </span>
                 <h4 class="service-heading">Recommend</h4>
-                <p class="text-muted">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Minima maxime quam architecto quo inventore harum ex magni, dicta impedit.</p>
+                <p class="text-muted">Recommend locations to be visited to users.</p>
             </div>
         </div>
     </div>
@@ -59,7 +61,8 @@
         <div class="row">
             <div class="col-lg-12 text-center">
                 <h2 class="section-heading">Portfolio</h2>
-                <h3 class="section-subheading text-muted">This project is supported by Daejeon Center for Creative Economy & Innovation</h3>
+                <hr>
+                <!--<h3 class="section-subheading text-muted">This project is supported by Daejeon Center for Creative Economy & Innovation</h3>-->
             </div>
         </div>
 
@@ -126,19 +129,23 @@
                             <h3>유저를 선택하세요</h3>
                             <br />
                             <div class="btn-group btn-group-lg text-center">
-                                <!--<a class="btn dropdown-toggle" data-toggle="dropdown" href="#">-->
-                                <!--Member Nickname-->
-                                <!--<span class="caret"></span>-->
-                                <!--</a>-->
-                                <!--<ul class="dropdown-menu scrollable-menu" role="menu">-->
-                                {% for user in locations %}
-                                <!--<li>-->
-                                <span class="large text-muted">
-                                        <a tabindex="-1" href="member/{{user.member_id}}">{{user.member_nickname}}</a>
-                                    </span>
-                                <!--</li>-->
-                                {% endfor %}
-                                <!--</ul>-->
+                                <div class="row text-center" id="keywords"></div>
+                                <script>
+                                    var words = [
+                                    {% for user in locations %}
+                                    {text: "{{user.member_nickname}}", weight: Math.log10({{user.num}}), link:'member/{{user.member_id}}'},
+                                    {% endfor %}
+                                    ];
+                                    $('#keywords').jQCloud(words, {
+                                        width: 1200,
+                                        height: 500,
+                                        colors: ["#800026", "#bd0026", "#e31a1c", "#fc4e2a", "#fd8d3c", "#feb24c", "#fed976"],
+                                        fontSize: {
+                                            from: 0.08,
+                                            to: 0.0001
+                                        },
+                                    });
+                                </script>
                             </div>
                         </div>
                     </div>

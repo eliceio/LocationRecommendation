@@ -3,12 +3,12 @@ from django.http import HttpResponse
 # Create your views here.
 
 from .models import Location
-
+from .models import Recommendation
+from django.db.models import Count
 
 def index(request):
 
-	# 중복 뺸 유저아이디만 
-	locations = Location.objects.values('member_id', 'member_nickname').distinct()
+	locations = Location.objects.values('member_id', 'member_nickname').annotate(num=Count('member_id'))
 
 	context = {'locations' : locations}
 
@@ -28,9 +28,8 @@ def index(request):
 def member(request, member_id):
 
 	locations = Location.objects.filter(member_id = member_id)
-
-	# recommend = recommendation(member_id)
-
-	context = {'locations' : locations}
+	users = Location.objects.values('member_id', 'member_nickname').annotate(num=Count('member_id'))
+	recommendations = Recommendation.objects.filter(member_id = member_id)
+	context = {'locations' : locations, 'users':users, 'recommendations':recommendations}
 
 	return render(request, 'blog/member.html', context)
