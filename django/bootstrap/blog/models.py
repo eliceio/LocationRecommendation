@@ -23,6 +23,7 @@ class Recommendation(models.Model):
 	restaurant_longitude = models.FloatField()
 	restaurant_name = models.CharField(max_length=20)
 	restaurant_id = models.IntegerField()
+	restaurant_address = models.CharField(max_length=30, default="")
 
 	def __str__(self):
 		return str(self.id)

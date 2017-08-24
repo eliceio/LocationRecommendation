@@ -147,7 +147,9 @@
                                 <script>
                                     var words = [
                                     {% for user in locations %}
+                                    {% if user.num > 3 %}
                                     {text: "{{user.member_nickname}}", weight: Math.log10({{user.num}}), link:'member/{{user.member_id}}'},
+                                    {% endif %}
                                     {% endfor %}
                                     ];
                                     $('#keywords').jQCloud(words, {

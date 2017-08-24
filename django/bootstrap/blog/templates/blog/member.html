@@ -186,7 +186,7 @@
                 <h2>Recommned Restaurant</h2>
                 {% for user in recommendations %}
                 <!--<li>{{user.restaurant_id}},  {{user.restaurant_name}},  {{user.restaurant_address}}</li>-->
-                <li>{{user.restaurant_name}}</li>
+                <li>{{user.restaurant_name}},  {{user.restaurant_address}}</li>
                 {% endfor %}
                 </p>
                 </p>
@@ -200,7 +200,9 @@
                 <script>
                     var words = [
                     {% for user in users %}
+                    {% if user.num > 3 %}
                     {text: "{{user.member_nickname}}", weight: {{user.num}}, link:'/member/{{user.member_id}}'},
+                    {% endif %}
                     {% endfor %}
                     ];
                     $('#keywords').jQCloud(words, {
