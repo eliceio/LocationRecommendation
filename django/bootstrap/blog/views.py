@@ -27,7 +27,7 @@ def index(request):
 
 def member(request, member_id):
 
-	locations = Location.objects.filter(member_id = member_id)
+	locations = Location.objects.filter(member_id = member_id).order_by('-register_time')
 	users = Location.objects.values('member_id', 'member_nickname').annotate(num=Count('member_id'))
 	recommendations = Recommendation.objects.filter(member_id = member_id)
 	context = {'locations' : locations, 'users':users, 'recommendations':recommendations}
