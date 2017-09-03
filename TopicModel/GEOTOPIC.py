@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jul 20 17:54:40 2017
 
-@author: vinnam
-"""
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
