@@ -30,4 +30,7 @@ Initial requirements are as follows
 
 ## Usage
 
-In progress
+```
+python3 main.py
+```
+
