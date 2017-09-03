@@ -48,6 +48,7 @@ def get_review_set(restaurants):
     restaurant_lat = []
     restaurant_long = []
     
+    
     for restaurant in restaurants:
     
         review_json_address = "https://stage.mangoplate.com/api/v5/restaurants/" + str(restaurant) + "/reviews.json?request_count=9999&start_index=0"
@@ -92,11 +93,11 @@ if __name__ == "__main__":
 		location = urllib.parse.quote(search_place)	
 		restaurants = get_store(location)
 		data = get_review_set(restaurants)
-		filename = "../data/crawl/" + search_place + ".csv"
+		filename = "../Data/Daejeon_dataset_DongUnit/" + search_place + ".csv"
 		data.to_csv(filename)
 		total_dataframe = pd.concat([total_dataframe, data], ignore_index=True)
-	total_dataframe.drop_duplicates(cols="Comment ID")
-	total_dataframe.to_csv("../data/crawl/Daejeon.csv")
+	# total_dataframe.drop_duplicates(cols="Comment ID")
+	total_dataframe.to_csv("../Data/Daejeon_dataset.csv")
 	print("#######")
 	print("#######")
 	print("Finish")
