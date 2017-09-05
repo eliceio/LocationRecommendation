@@ -4,6 +4,9 @@ __ELICE__, 2017 Summer Team Project
 
 This project is supported by __Daejeon Center for Creative Economy & Innovation__
 
+## Web Demo:
+__http://1.255.55.102__
+
 ## Team members:
 
 * Sumin Lim 
